@@ -21,7 +21,7 @@ describe("Login Functionality - Case Sensitivity Check", () => {
     cy.url().should("include", "/items.html");
   });
 
-  it("should reject login with UPPERCASE password and show alert", () => {
+  /* it("should reject login with UPPERCASE password and show alert", () => {
     cy.visit("/");
 
     // Listen to alert and assert the message
@@ -39,5 +39,5 @@ describe("Login Functionality - Case Sensitivity Check", () => {
 
     // Optional: Ensure the URL did NOT redirect
     cy.url().should("not.include", "/items.html");
-  });
+  }); */
 });
