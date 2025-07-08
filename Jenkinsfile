@@ -17,5 +17,18 @@ pipeline {
         bat 'npx cypress run'
       }
     }
+
+    stage('Generate HTML Report') {
+      steps {
+        bat 'npx mochawesome-merge cypress/results/*.json > cypress/results/report.json'
+        bat 'npx marge cypress/results/report.json --reportDir cypress/results/html'
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'cypress/results/html/**', fingerprint: true
+    }
   }
 }
