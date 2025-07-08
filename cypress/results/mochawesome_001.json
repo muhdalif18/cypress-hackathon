@@ -5,9 +5,9 @@
     "passes": 1,
     "pending": 0,
     "failures": 0,
-    "start": "2025-07-08T17:06:48.308Z",
-    "end": "2025-07-08T17:06:50.366Z",
-    "duration": 2058,
+    "start": "2025-07-08T17:14:06.702Z",
+    "end": "2025-07-08T17:14:08.203Z",
+    "duration": 1501,
     "testsRegistered": 1,
     "passPercent": 100,
     "pendingPercent": 0,
@@ -18,7 +18,7 @@
   },
   "results": [
     {
-      "uuid": "2897ca4b-23a0-442b-9137-430168ee5849",
+      "uuid": "e523b63f-90b0-438a-8993-2386edd45653",
       "title": "",
       "fullFile": "cypress\\e2e\\test.cy.ts",
       "file": "cypress\\e2e\\test.cy.ts",
@@ -27,7 +27,7 @@
       "tests": [],
       "suites": [
         {
-          "uuid": "66c92536-e8c8-4751-a5f0-7caa4c616a8b",
+          "uuid": "bef5040e-7451-4a6c-abd9-f89e06423ca6",
           "title": "Login Functionality - Case Sensitivity Check",
           "fullFile": "",
           "file": "",
@@ -38,7 +38,7 @@
               "title": "should login successssssssssfully with correct password and NOT show alert",
               "fullTitle": "Login Functionality - Case Sensitivity Check should login successssssssssfully with correct password and NOT show alert",
               "timedOut": null,
-              "duration": 1201,
+              "duration": 1173,
               "state": "passed",
               "speed": "fast",
               "pass": true,
@@ -47,20 +47,20 @@
               "context": null,
               "code": "cy.userLoginHackathon();\ncy.url().should(\"include\", \"/items.html\");",
               "err": {},
-              "uuid": "c62b74a7-3116-4647-8a5a-8ebb22b79761",
-              "parentUUID": "66c92536-e8c8-4751-a5f0-7caa4c616a8b",
+              "uuid": "cc55ffe5-182d-4de2-8a3f-6d50cb114e01",
+              "parentUUID": "bef5040e-7451-4a6c-abd9-f89e06423ca6",
               "isHook": false,
               "skipped": false
             }
           ],
           "suites": [],
           "passes": [
-            "c62b74a7-3116-4647-8a5a-8ebb22b79761"
+            "cc55ffe5-182d-4de2-8a3f-6d50cb114e01"
           ],
           "failures": [],
           "pending": [],
           "skipped": [],
-          "duration": 1201,
+          "duration": 1173,
           "root": false,
           "rootEmpty": false,
           "_timeout": 2000

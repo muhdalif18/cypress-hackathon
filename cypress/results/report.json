@@ -5,29 +5,29 @@
     "passes": 1,
     "pending": 0,
     "failures": 0,
-    "start": "2025-07-08T17:14:03.875Z",
-    "end": "2025-07-08T17:14:05.640Z",
-    "duration": 1765,
     "testsRegistered": 1,
     "passPercent": 100,
     "pendingPercent": 0,
     "other": 0,
     "hasOther": false,
     "skipped": 0,
-    "hasSkipped": false
+    "hasSkipped": false,
+    "start": "2025-07-08T17:14:06.702Z",
+    "end": "2025-07-08T17:14:08.203Z",
+    "duration": 1501
   },
   "results": [
     {
-      "uuid": "8ce664f5-ba48-41c3-9228-ebb9b579bd33",
+      "uuid": "e523b63f-90b0-438a-8993-2386edd45653",
       "title": "",
-      "fullFile": "cypress\\e2e\\login-check.cy.ts",
-      "file": "cypress\\e2e\\login-check.cy.ts",
+      "fullFile": "cypress\\e2e\\test.cy.ts",
+      "file": "cypress\\e2e\\test.cy.ts",
       "beforeHooks": [],
       "afterHooks": [],
       "tests": [],
       "suites": [
         {
-          "uuid": "a12c5fc7-dc5f-4ea0-b8e7-27a47cc6edf4",
+          "uuid": "bef5040e-7451-4a6c-abd9-f89e06423ca6",
           "title": "Login Functionality - Case Sensitivity Check",
           "fullFile": "",
           "file": "",
@@ -35,32 +35,32 @@
           "afterHooks": [],
           "tests": [
             {
-              "title": "should login successfully with correct password and NOT show alert",
-              "fullTitle": "Login Functionality - Case Sensitivity Check should login successfully with correct password and NOT show alert",
+              "title": "should login successssssssssfully with correct password and NOT show alert",
+              "fullTitle": "Login Functionality - Case Sensitivity Check should login successssssssssfully with correct password and NOT show alert",
               "timedOut": null,
-              "duration": 1750,
+              "duration": 1173,
               "state": "passed",
               "speed": "fast",
               "pass": true,
               "fail": false,
               "pending": false,
               "context": null,
-              "code": "cy.visit(\"/\");\nconst alertStub = cy.stub();\ncy.on(\"window:alert\", alertStub);\ncy.get(\"#username\").type(username);\ncy.get(\"#password\").type(validPassword);\ncy.contains(\"button\", \"Login\").click();\n// Assert alert was NOT called\ncy.then(() => {\n    expect(alertStub).not.to.have.been.called;\n});\n// Assert redirection to items.html\ncy.url().should(\"include\", \"/items.html\");",
+              "code": "cy.userLoginHackathon();\ncy.url().should(\"include\", \"/items.html\");",
               "err": {},
-              "uuid": "9a601272-2af7-4f7e-95ab-54de641c0bd2",
-              "parentUUID": "a12c5fc7-dc5f-4ea0-b8e7-27a47cc6edf4",
+              "uuid": "cc55ffe5-182d-4de2-8a3f-6d50cb114e01",
+              "parentUUID": "bef5040e-7451-4a6c-abd9-f89e06423ca6",
               "isHook": false,
               "skipped": false
             }
           ],
           "suites": [],
           "passes": [
-            "9a601272-2af7-4f7e-95ab-54de641c0bd2"
+            "cc55ffe5-182d-4de2-8a3f-6d50cb114e01"
           ],
           "failures": [],
           "pending": [],
           "skipped": [],
-          "duration": 1750,
+          "duration": 1173,
           "root": false,
           "rootEmpty": false,
           "_timeout": 2000
