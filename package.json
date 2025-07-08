@@ -13,6 +13,7 @@
   "description": "",
   "devDependencies": {
     "cypress": "^14.5.1",
+    "marge": "^1.0.1",
     "mochawesome": "^7.1.3",
     "mochawesome-merge": "^5.0.0",
     "mochawesome-report-generator": "^6.2.0",
