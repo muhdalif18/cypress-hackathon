@@ -9,5 +9,12 @@ export default defineConfig({
     },
     baseUrl: "https://my-shop-eight-theta.vercel.app/", // change as needed
     specPattern: "cypress/e2e/**/*.ts",
+    reporter: "mochawesome",
+    reporterOptions: {
+      reportDir: "cypress/results",
+      overwrite: false,
+      html: false,
+      json: true,
+    },
   },
 });
