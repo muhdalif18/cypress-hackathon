@@ -61,7 +61,7 @@ pipeline {
       archiveArtifacts artifacts: 'cypress/videos/**/*.mp4', allowEmptyArchive: true
       archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
       
-      // Publish HTML Report - THE PROFESSIONAL WAY
+      // Publish HTML Report with CSP bypass
       publishHTML([
         allowMissing: false,
         alwaysLinkToLastBuild: true,
@@ -69,8 +69,21 @@ pipeline {
         reportDir: 'cypress/results/html',
         reportFiles: 'report.html',
         reportName: 'Cypress Test Report',
-        reportTitles: 'Test Results'
+        reportTitles: 'Test Results',
+        // Add these options to bypass CSP issues
+        includes: '**/*',
+        allowMissing: false,
+        alwaysLinkToLastBuild: true,
+        keepAll: true
       ])
+      
+      // Alternative: Also create a simple text summary
+      script {
+        bat 'echo Test Summary Report > cypress/results/summary.txt'
+        bat 'echo Build Number: ${BUILD_NUMBER} >> cypress/results/summary.txt'
+        bat 'echo Build Date: %DATE% %TIME% >> cypress/results/summary.txt'
+        archiveArtifacts artifacts: 'cypress/results/summary.txt', fingerprint: true
+      }
       
       // Clean up workspace
       cleanWs()
