@@ -2,26 +2,36 @@ pipeline {
   agent any
 
   tools {
-    nodejs 'node16'
+    nodejs 'node16' // Use the Node.js you configured in Jenkins
   }
 
   stages {
     stage('Install Dependencies') {
       steps {
-        sh 'npm install'
+        bat 'npm install'
       }
     }
 
     stage('Run Cypress Tests') {
       steps {
-        sh 'npx cypress run'
+        bat 'npx cypress run'
+      }
+    }
+
+    stage('Generate Report') {
+      steps {
+        // Merge mochawesome JSON files
+        bat 'npx mochawesome-merge cypress/results/mochawesome_*.json > cypress/results/report.json'
+
+        // Generate HTML report from merged JSON
+        bat 'npx marge cypress/results/report.json --reportDir cypress/results/html'
       }
     }
   }
 
   post {
     always {
-      junit '**/cypress/results/*.xml' // optional if you generate junit xml results
+      archiveArtifacts artifacts: 'cypress/results/html/**', fingerprint: true
     }
   }
 }
