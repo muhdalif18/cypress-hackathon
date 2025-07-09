@@ -29,7 +29,7 @@ pipeline {
 
   post {
     always {
-      archiveArtifacts artifacts: 'cypress/results/html/', fingerprint: true
-    }
-  }
+      archiveArtifacts artifacts: 'cypress/results/html/**', fingerprint: true
+    }
+  }
 }
