@@ -1,22 +1,35 @@
-import { defineConfig } from "cypress";
+pipeline {
+  agent any
 
-export default defineConfig({
-  e2e: {
-    baseUrl: "https://my-shop-eight-theta.vercel.app/",
-    specPattern: "cypress/e2e/**/*.ts",
-    reporter: "mochawesome",
-    reporterOptions: {
-      reportDir: "cypress/results",
-      overwrite: false,
-      html: true, 
-      json: true,
-      inlineAssets: true, 
-      reportPageTitle: "Cypress Test Report"
-    },
-    viewportWidth: 1920,
-    viewportHeight: 1080,
-    setupNodeEvents(on, config) {
-      // No plugin needed for mochawesome
-    },
-  },
-});
+  tools {
+    nodejs 'node16'
+  }
+
+  stages {
+    stage('Install Dependencies') {
+      steps {
+        bat 'npm install'
+        bat 'npx cypress install' // ← this installs the Cypress binary
+      }
+    }
+
+    stage('Run Cypress Tests') {
+      steps {
+        bat 'npx cypress run'
+      }
+    }
+
+    stage('Generate Report') {
+      steps {
+        bat 'npx mochawesome-merge cypress/results/mochawesome_*.json > cypress/results/report.json'
+        bat 'npx marge cypress/results/report.json --reportDir cypress/results/html'
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'cypress/results/html/', fingerprint: true
+    }
+  }
+}
