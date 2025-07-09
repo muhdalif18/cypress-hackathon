@@ -21,8 +21,9 @@ pipeline {
 
     stage('Generate Report') {
       steps {
-        bat 'npx mochawesome-merge cypress/results/mochawesome_*.json > cypress/results/report.json'
-        bat 'npx marge cypress/results/report.json --reportDir cypress/results/html'
+      
+        bat 'npx mochawesome-merge "cypress/results/mochawesome*.json" > cypress/results/report.json'
+        bat 'npx marge cypress/results/report.json --reportDir cypress/results/html --inline'
       }
     }
   }
