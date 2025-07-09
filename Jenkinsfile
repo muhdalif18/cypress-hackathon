@@ -3,28 +3,29 @@ pipeline {
   tools {
     nodejs 'node16'
   }
-
   stages {
+    stage('Clean Results') {
+      steps {
+        bat 'rmdir /S /Q cypress\\results'
+      }
+    }
     stage('Install Dependencies') {
       steps {
         bat 'npm ci'
         bat 'npx cypress install'
       }
     }
-
     stage('Run Tests') {
       steps {
-        bat 'npx cypress run'
+        bat 'npx cypress run --reporter cypress-mochawesome-reporter'
       }
     }
-
     stage('Merge & Generate Report') {
       steps {
         bat 'npx mochawesome-merge cypress/results/*.json > cypress/results/report.json'
         bat 'npx marge cypress/results/report.json --reportDir cypress/results/html --reportFilename report --inline --overwrite'
       }
     }
-
     stage('Archive Report') {
       steps {
         archiveArtifacts artifacts: 'cypress/results/html/**', fingerprint: true
