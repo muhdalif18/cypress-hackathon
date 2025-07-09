@@ -2,13 +2,14 @@ pipeline {
   agent any
 
   tools {
-    nodejs 'node16' // Use the Node.js you configured in Jenkins
+    nodejs 'node16'
   }
 
   stages {
     stage('Install Dependencies') {
       steps {
         bat 'npm install'
+        bat 'npx cypress install' // ← this installs the Cypress binary
       }
     }
 
@@ -20,10 +21,7 @@ pipeline {
 
     stage('Generate Report') {
       steps {
-        // Merge mochawesome JSON files
         bat 'npx mochawesome-merge cypress/results/mochawesome_*.json > cypress/results/report.json'
-
-        // Generate HTML report from merged JSON
         bat 'npx marge cypress/results/report.json --reportDir cypress/results/html'
       }
     }
