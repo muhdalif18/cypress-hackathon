@@ -1,6 +1,5 @@
 pipeline {
   agent any
-
   tools {
     nodejs 'node16'
   }
@@ -8,28 +7,28 @@ pipeline {
   stages {
     stage('Install Dependencies') {
       steps {
-        bat 'npm install'
-        bat 'npx cypress install' // ← this installs the Cypress binary
+        bat 'npm ci'
+        bat 'npx cypress install'
       }
     }
 
-    stage('Run Cypress Tests') {
+    stage('Run Tests') {
       steps {
         bat 'npx cypress run'
       }
     }
 
-    stage('Generate Report') {
+    stage('Merge & Generate Report') {
       steps {
-        bat 'npx mochawesome-merge cypress/results/mochawesome_*.json > cypress/results/report.json'
-        bat 'npx marge cypress/results/report.json --reportDir cypress/results/html'
+        bat 'npx mochawesome-merge cypress/results/*.json > cypress/results/report.json'
+        bat 'npx marge cypress/results/report.json --reportDir cypress/results/html --reportFilename report --inline --overwrite'
       }
     }
-  }
 
-  post {
-    always {
-      archiveArtifacts artifacts: 'cypress/results/html/**', fingerprint: true
+    stage('Archive Report') {
+      steps {
+        archiveArtifacts artifacts: 'cypress/results/html/**', fingerprint: true
+      }
     }
   }
 }
