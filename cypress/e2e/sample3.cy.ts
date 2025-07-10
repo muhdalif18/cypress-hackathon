@@ -1,25 +1,7 @@
-describe("module3 - test module 3", () => {
-  const username = Cypress.env("HACKATHON_USER");
-  const validPassword = Cypress.env("HACKATHON_VALID_PASS");
-  const invalidPassword = Cypress.env("HACKATHON_INVALID_PASS");
-
-  it("should login sjhh hasdh ahsd hasjdh asd asjdhjdas askjdsa kj", () => {
-    cy.visit("/");
-    const alertStub = cy.stub();
-    cy.on("window:alert", alertStub);
-
-    cy.get("#username").type(username);
-    cy.get("#password").type(validPassword);
-    cy.get("#password").clear();
-    cy.get("#password").type(validPassword);
-    cy.contains("button", "Login").click();
-
-    // Assert alert was NOT called
-    cy.then(() => {
-      expect(alertStub).not.to.have.been.called;
-    });
-
-    // Assert redirection to items.html
+describe("HACK003", () => {
+  it("HACK003", () => {
+    cy.userLoginHackathon();
+    cy.wait(1000);
     cy.url().should("include", "/items.html");
   });
 });

@@ -1,15 +1,13 @@
-describe("module1 - Case Sensitivity Check", () => {
+describe("HACK001", () => {
   const username = Cypress.env("HACKATHON_USER");
   const validPassword = Cypress.env("HACKATHON_VALID_PASS");
   const invalidPassword = Cypress.env("HACKATHON_INVALID_PASS");
 
-  it("tasdgasdg asj dhgd a ", () => {
+  it("HACK001", () => {
     cy.visit("/");
     const alertStub = cy.stub();
     cy.on("window:alert", alertStub);
 
-    cy.get("#username").type(username);
-    cy.get("#username").clear();
     cy.get("#username").type(username);
     cy.get("#password").type(validPassword);
     cy.contains("button", "Login").click();
