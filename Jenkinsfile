@@ -61,7 +61,7 @@ pipeline {
       archiveArtifacts artifacts: 'cypress/videos/**/*.mp4', allowEmptyArchive: true
       archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
       
-      // SOLUTION 1: Configure HTML Publisher with CSP bypass
+      // FIXED: Proper HTML Publisher configuration
       publishHTML([
         allowMissing: false,
         alwaysLinkToLastBuild: true,
@@ -69,22 +69,17 @@ pipeline {
         reportDir: 'cypress/results/html',
         reportFiles: 'report.html',
         reportName: 'Cypress Test Report',
-        reportTitles: 'Test Results',
-        // Critical CSP bypass settings
+        reportTitles: '',
+        // Remove duplicate and conflicting settings
         escapeUnderscores: false,
-        includes: '**/*',
-        // Add these for CSP bypass
-        allowMissing: false,
-        alwaysLinkToLastBuild: true,
-        keepAll: true
+        includes: '**/*'
       ])
       
-      // SOLUTION 2: Alternative simple text summary
+      // Alternative: Create a simple redirect HTML file
       script {
-        bat 'echo Test Summary Report > cypress/results/summary.txt'
-        bat 'echo Build Number: ${BUILD_NUMBER} >> cypress/results/summary.txt'
-        bat 'echo Build Date: %DATE% %TIME% >> cypress/results/summary.txt'
-        archiveArtifacts artifacts: 'cypress/results/summary.txt', fingerprint: true
+        bat '''
+          echo ^<html^>^<head^>^<meta http-equiv="refresh" content="0; url=report.html"^>^</head^>^<body^>Redirecting...^</body^>^</html^> > cypress/results/html/index.html
+        '''
       }
       
       // Clean up workspace
