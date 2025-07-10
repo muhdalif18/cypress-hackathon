@@ -1,4 +1,4 @@
-describe("module1 - aasssa", () => {
+describe("modulesss1 - aasssa", () => {
   it("should login successfully with correct password and NOT show alert", () => {
     cy.userLoginHackathon();
 
