@@ -8,7 +8,7 @@ describe("module1 - Case Sensitivity Check", () => {
     const alertStub = cy.stub();
     cy.on("window:alert", alertStub);
 
-    cy.get("#usersssname").type(username);
+    cy.get("#username").type(username);
     cy.get("#password").type(validPassword);
     cy.contains("button", "Login").click();
 
