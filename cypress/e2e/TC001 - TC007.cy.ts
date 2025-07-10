@@ -19,6 +19,15 @@ describe("E-commerce Login Page Functionality", () => {
 
   // Test 1: Valid Login - Acceptance Criteria 1
   it("TC001: Should successfully login with valid credentials and redirect to items page", () => {
+    /*
+    Description: Test valid login functionality with correct credentials
+    High Level Steps:
+    1. Enter valid username and password
+    2. Click login button
+    3. Verify successful redirect to items page
+    4. Verify items page content loads correctly
+    */
+
     // AI-Generated Test Steps
     cy.log("Testing valid login functionality");
 
@@ -44,6 +53,16 @@ describe("E-commerce Login Page Functionality", () => {
 
   // Test 2: Invalid Credentials - Acceptance Criteria 2
   it("TC002: Should display alert for invalid credentials", () => {
+    /*
+    Description: Test invalid login credentials validation
+    High Level Steps:
+    1. Setup alert stub for verification
+    2. Enter invalid username and password
+    3. Click login button
+    4. Verify alert is displayed
+    5. Verify user remains on login page
+    */
+
     // AI-Generated Test Steps
     cy.log("Testing invalid credentials validation");
 
@@ -71,6 +90,16 @@ describe("E-commerce Login Page Functionality", () => {
 
   // Test 3: Empty Fields Validation - Acceptance Criteria 3
   it("TC003: Should display validation alerts for empty fields", () => {
+    /*
+    Description: Test empty field validation for login form
+    High Level Steps:
+    1. Setup alert stub for verification
+    2. Test empty username scenario
+    3. Test empty password scenario
+    4. Test both fields empty scenario
+    5. Verify appropriate alerts are displayed
+    */
+
     // AI-Generated Test Steps
     cy.log("Testing empty fields validation");
 
@@ -109,6 +138,15 @@ describe("E-commerce Login Page Functionality", () => {
 
   // Test 4: Form Interaction - Acceptance Criteria 4
   it("TC004: Should allow proper interaction with input fields", () => {
+    /*
+    Description: Test form field interactions and attributes
+    High Level Steps:
+    1. Verify username field attributes and interactions
+    2. Verify password field attributes and interactions
+    3. Test login button properties
+    4. Verify field focus and value changes
+    */
+
     // AI-Generated Test Steps
     cy.log("Testing form field interactions");
 
@@ -146,6 +184,15 @@ describe("E-commerce Login Page Functionality", () => {
 
   // Test 5: Password Field Security - Acceptance Criteria 5
   it("TC005: Should mask password input for security", () => {
+    /*
+    Description: Test password field security masking
+    High Level Steps:
+    1. Verify password field type attribute
+    2. Enter password and verify masking
+    3. Verify password content is not visible in DOM
+    4. Confirm security implementation
+    */
+
     // AI-Generated Test Steps
     cy.log("Testing password field security behavior");
 
@@ -170,7 +217,17 @@ describe("E-commerce Login Page Functionality", () => {
   });
 
   // Bonus Test: Defect Detection - Multiple Valid Passwords
-  it("TC006: DEFECT TEST - Should detect multiple valid password acceptance", () => {
+  it("TC006: Should detect multiple valid password acceptance", () => {
+    /*
+    Description: Test for defect where multiple passwords are accepted for same user
+    High Level Steps:
+    1. Login with first valid password
+    2. Verify successful login
+    3. Return to login page
+    4. Attempt login with second valid password
+    5. Verify security defect (should fail but doesn't)
+    */
+
     // AI-Generated Defect Detection Test
     cy.log("Testing identified defect - multiple valid passwords");
 
@@ -194,5 +251,38 @@ describe("E-commerce Login Page Functionality", () => {
     cy.get("@windowAlert").should("have.been.calledWith");
 
     cy.log("DEFECT CONFIRMED: Multiple passwords accepted for same user");
+  });
+
+  it("TC007: Should handle login button click events properly", () => {
+    /*
+    Description: Test login button click event handling
+    High Level Steps:
+    1. Verify login button is clickable
+    2. Test button behavior with different field states
+    3. Verify onclick event is properly attached
+    4. Test button responsiveness
+    */
+
+    cy.log("Testing login button click event handling");
+
+    // Verify button is clickable and has proper onclick attribute
+    cy.get("button")
+      .contains("Login")
+      .should("be.visible")
+      .should("not.be.disabled")
+      .should("have.attr", "onclick", "login()");
+
+    // Test button click with empty fields
+    cy.get("button").contains("Login").click();
+
+    // Test button click with partial data
+    cy.get("#username").type("testuser");
+    cy.get("button").contains("Login").click();
+
+    // Test button click with complete data
+    cy.get("#password").type("testpass");
+    cy.get("button").contains("Login").click();
+
+    cy.log("Login button click event test completed successfully");
   });
 });
