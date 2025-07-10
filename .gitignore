@@ -1,0 +1,14 @@
+# Allure Reports
+allure-results/
+allure-report/
+
+# Cypress generated files
+cypress/videos/
+cypress/screenshots/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
