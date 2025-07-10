@@ -5,13 +5,18 @@
   "scripts": {
     "test": "cypress run",
     "test:headed": "cypress open",
-    "cy:verify": "cypress verify"
+    "cy:verify": "cypress verify",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@shelex/cypress-allure-plugin": "^2.41.2",
+    "allure-commandline": "^2.34.1",
     "cypress": "^14.5.1",
     "marge": "^1.0.1",
     "mochawesome": "^7.1.3",

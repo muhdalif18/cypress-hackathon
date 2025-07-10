@@ -1,63 +1,45 @@
 import { defineConfig } from "cypress";
+import { allureCypress } from "@shelex/cypress-allure-plugin";
 
 export default defineConfig({
-  reporter: "mochawesome",
-  reporterOptions: {
-    reportDir: "cypress/results",
-    overwrite: false,
-    html: false,
-    json: true,
-    timestamp: "mmddyyyy_HHMMss",
-    // Enhanced reporting options for dashboard-style reports
-    charts: true,
-    reportPageTitle: "Cypress Test Dashboard",
-    reportTitle: "Test Results Dashboard",
-    embeddedScreenshots: true,
-    inlineAssets: true,
-    saveJson: true,
-    saveHtml: false,
-    // Add these for better dashboard experience
-    showPassed: true,
-    showFailed: true,
-    showPending: true,
-    showSkipped: true,
-    showHooks: "failed",
-    enableCode: true,
-    enableCharts: true,
-    autoOpen: false,
-    // Add custom CSS for better styling
-    customCss: "cypress/support/custom-report.css",
-  },
-
   e2e: {
     baseUrl: "https://my-shop-eight-theta.vercel.app/",
     specPattern: "cypress/e2e/**/*.ts",
     setupNodeEvents(on, config) {
-      // Enhanced reporting task
+      // Setup Allure plugin
+      allureCypress(on, config, {
+        resultsDir: "allure-results",
+        // Optional: configure Allure options
+        links: [
+          {
+            type: "issue",
+            urlTemplate: "https://github.com/your-repo/issues/%s",
+            nameTemplate: "Issue #%s",
+          },
+          {
+            type: "tms",
+            urlTemplate: "https://your-tms.com/test/%s",
+            nameTemplate: "Test Case #%s",
+          },
+        ],
+        environmentInfo: {
+          "Test Environment": "CI/CD",
+          Browser: "Electron",
+          OS: "Windows",
+          "Node Version": process.version,
+          "Base URL": config.baseUrl,
+        },
+      });
+
+      // Keep your existing tasks
       on("task", {
         log(message) {
           console.log(message);
           return null;
         },
-        // Add custom task for generating dashboard stats
-        generateDashboardData(results) {
-          // Process test results for dashboard
-          const stats = {
-            total: results.stats.tests,
-            passed: results.stats.passes,
-            failed: results.stats.failures,
-            pending: results.stats.pending,
-            skipped: results.stats.skipped,
-            passPercentage: (
-              (results.stats.passes / results.stats.tests) *
-              100
-            ).toFixed(2),
-            duration: results.stats.duration,
-          };
-          console.log("Dashboard Stats:", stats);
-          return stats;
-        },
       });
+
+      return config;
     },
     viewportWidth: 1920,
     viewportHeight: 1080,
