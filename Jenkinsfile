@@ -7,6 +7,16 @@ pipeline {
 
     environment {
         PATH = "${PATH};${WORKSPACE}\\node_modules\\.bin"
+        // Add environment variables for Allure reporting
+        NODE_ENV = 'staging'
+        TEST_ENV = 'Jenkins CI/CD'
+        BASE_URL = 'https://my-shop-eight-theta.vercel.app/'
+        BROWSER = 'chrome'
+        GIT_BRANCH = "${env.GIT_BRANCH}"
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        BUILD_ID = "${env.BUILD_ID}"
+        JENKINS_URL = "${env.JENKINS_URL}"
+        JOB_NAME = "${env.JOB_NAME}"
     }
 
     stages {
@@ -27,6 +37,29 @@ pipeline {
                         rmdir /s /q allure-report
                     )
                 '''
+            }
+        }
+
+        stage('Setup Environment Info') {
+            steps {
+                script {
+                    // Create allure-results directory and environment.properties file
+                    bat '''
+                        if not exist allure-results (
+                            mkdir allure-results
+                        )
+                        echo Browser=Chrome > allure-results\\environment.properties
+                        echo OS=Windows >> allure-results\\environment.properties
+                        echo Environment=Staging >> allure-results\\environment.properties
+                        echo Base.URL=%BASE_URL% >> allure-results\\environment.properties
+                        echo CI/CD=Jenkins >> allure-results\\environment.properties
+                        echo Build.Number=%BUILD_NUMBER% >> allure-results\\environment.properties
+                        echo Job.Name=%JOB_NAME% >> allure-results\\environment.properties
+                        echo Test.Framework=Cypress >> allure-results\\environment.properties
+                        echo Node.Version=%NODE_VERSION% >> allure-results\\environment.properties
+                        echo Git.Branch=%GIT_BRANCH% >> allure-results\\environment.properties
+                    '''
+                }
             }
         }
 
@@ -73,7 +106,7 @@ pipeline {
                 script {
                     try {
                         allure([
-                            includeProperties: false,
+                            includeProperties: true,  // Changed to true to include environment properties
                             jdk: '',
                             reportBuildPolicy: 'ALWAYS',
                             results: [[path: 'allure-results']]
