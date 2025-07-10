@@ -16,6 +16,20 @@ pipeline {
             }
         }
 
+        stage('Clean Previous Results') {
+            steps {
+                // Clean allure-results directory before running tests
+                bat '''
+                    if exist allure-results (
+                        rmdir /s /q allure-results
+                    )
+                    if exist allure-report (
+                        rmdir /s /q allure-report
+                    )
+                '''
+            }
+        }
+
         stage('Run Tests') {
             steps {
                 bat 'npx cypress run'
