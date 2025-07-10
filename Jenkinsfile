@@ -64,101 +64,99 @@ pipeline {
             --overwrite
           '''
           
-          // Generate custom dashboard with statistics
+          // Create a separate Node.js script for dashboard generation
           bat '''
-            node -e "
-            const fs = require('fs');
-            const report = JSON.parse(fs.readFileSync('cypress/results/merged-report.json', 'utf8'));
-            
-            const stats = {
-              total: report.stats.tests,
-              passed: report.stats.passes,
-              failed: report.stats.failures,
-              pending: report.stats.pending,
-              skipped: report.stats.skipped,
-              passPercentage: ((report.stats.passes / report.stats.tests) * 100).toFixed(2),
-              duration: report.stats.duration,
-              suites: report.stats.suites
-            };
-            
-            const dashboardHtml = \`
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Cypress Test Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .stat-number { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
-        .stat-label { color: #666; font-size: 0.9em; }
-        .passed { color: #28a745; }
-        .failed { color: #dc3545; }
-        .pending { color: #ffc107; }
-        .skipped { color: #6c757d; }
-        .percentage { font-size: 1.8em; font-weight: bold; color: #28a745; }
-        .progress-bar { width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #28a745; transition: width 0.3s ease; }
-        .main-report-link { display: inline-block; margin: 20px 0; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
-        .main-report-link:hover { background: #0056b3; }
-    </style>
-</head>
-<body>
-    <h1>Cypress Test Dashboard - Build #${BUILD_NUMBER}</h1>
-    
-    <div class="dashboard">
-        <div class="card">
-            <div class="stat-label">Total Tests</div>
-            <div class="stat-number">\${stats.total}</div>
-        </div>
-        
-        <div class="card">
-            <div class="stat-label">Passed</div>
-            <div class="stat-number passed">\${stats.passed}</div>
-        </div>
-        
-        <div class="card">
-            <div class="stat-label">Failed</div>
-            <div class="stat-number failed">\${stats.failed}</div>
-        </div>
-        
-        <div class="card">
-            <div class="stat-label">Success Rate</div>
-            <div class="percentage">\${stats.passPercentage}%</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: \${stats.passPercentage}%"></div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="stat-label">Duration</div>
-            <div class="stat-number">\${(stats.duration / 1000).toFixed(1)}s</div>
-        </div>
-        
-        <div class="card">
-            <div class="stat-label">Test Suites</div>
-            <div class="stat-number">\${stats.suites}</div>
-        </div>
-    </div>
-    
-    <a href="index.html" class="main-report-link">View Detailed Report</a>
-    
-    <script>
-        // Add some interactivity
-        document.addEventListener('DOMContentLoaded', function() {
-            const progressFill = document.querySelector('.progress-fill');
-            setTimeout(() => {
-                progressFill.style.width = '\${stats.passPercentage}%';
-            }, 500);
-        });
-    </script>
-</body>
-</html>
-            \`;
-            
-            fs.writeFileSync('cypress/results/dashboard/dashboard.html', dashboardHtml);
-            console.log('Dashboard generated successfully');
-            "
+            echo const fs = require('fs'); > generate-dashboard.js
+            echo const report = JSON.parse(fs.readFileSync('cypress/results/merged-report.json', 'utf8')); >> generate-dashboard.js
+            echo const stats = { >> generate-dashboard.js
+            echo   total: report.stats.tests, >> generate-dashboard.js
+            echo   passed: report.stats.passes, >> generate-dashboard.js
+            echo   failed: report.stats.failures, >> generate-dashboard.js
+            echo   pending: report.stats.pending, >> generate-dashboard.js
+            echo   skipped: report.stats.skipped, >> generate-dashboard.js
+            echo   passPercentage: ((report.stats.passes / report.stats.tests) * 100).toFixed(2), >> generate-dashboard.js
+            echo   duration: report.stats.duration, >> generate-dashboard.js
+            echo   suites: report.stats.suites >> generate-dashboard.js
+            echo }; >> generate-dashboard.js
+            echo fs.writeFileSync('cypress/results/dashboard/dashboard.json', JSON.stringify(stats, null, 2)); >> generate-dashboard.js
+            echo console.log('Dashboard data generated successfully'); >> generate-dashboard.js
+          '''
+          
+          // Run the dashboard generation script
+          bat 'node generate-dashboard.js'
+          
+          // Create the dashboard HTML file
+          bat '''
+            (
+            echo ^<!DOCTYPE html^>
+            echo ^<html^>
+            echo ^<head^>
+            echo     ^<title^>Cypress Test Dashboard^</title^>
+            echo     ^<style^>
+            echo         body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            echo         .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr^)^); gap: 20px; margin-bottom: 30px; }
+            echo         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1^); }
+            echo         .stat-number { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
+            echo         .stat-label { color: #666; font-size: 0.9em; }
+            echo         .passed { color: #28a745; }
+            echo         .failed { color: #dc3545; }
+            echo         .pending { color: #ffc107; }
+            echo         .skipped { color: #6c757d; }
+            echo         .percentage { font-size: 1.8em; font-weight: bold; color: #28a745; }
+            echo         .progress-bar { width: 100%%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; }
+            echo         .progress-fill { height: 100%%; background: #28a745; transition: width 0.3s ease; }
+            echo         .main-report-link { display: inline-block; margin: 20px 0; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+            echo         .main-report-link:hover { background: #0056b3; }
+            echo     ^</style^>
+            echo ^</head^>
+            echo ^<body^>
+            echo     ^<h1^>Cypress Test Dashboard - Build #%BUILD_NUMBER%^</h1^>
+            echo     ^<div class="dashboard"^>
+            echo         ^<div class="card"^>
+            echo             ^<div class="stat-label"^>Total Tests^</div^>
+            echo             ^<div class="stat-number" id="totalTests"^>Loading...^</div^>
+            echo         ^</div^>
+            echo         ^<div class="card"^>
+            echo             ^<div class="stat-label"^>Passed^</div^>
+            echo             ^<div class="stat-number passed" id="passedTests"^>Loading...^</div^>
+            echo         ^</div^>
+            echo         ^<div class="card"^>
+            echo             ^<div class="stat-label"^>Failed^</div^>
+            echo             ^<div class="stat-number failed" id="failedTests"^>Loading...^</div^>
+            echo         ^</div^>
+            echo         ^<div class="card"^>
+            echo             ^<div class="stat-label"^>Success Rate^</div^>
+            echo             ^<div class="percentage" id="successRate"^>Loading...^</div^>
+            echo             ^<div class="progress-bar"^>
+            echo                 ^<div class="progress-fill" id="progressFill"^>^</div^>
+            echo             ^</div^>
+            echo         ^</div^>
+            echo         ^<div class="card"^>
+            echo             ^<div class="stat-label"^>Duration^</div^>
+            echo             ^<div class="stat-number" id="duration"^>Loading...^</div^>
+            echo         ^</div^>
+            echo         ^<div class="card"^>
+            echo             ^<div class="stat-label"^>Test Suites^</div^>
+            echo             ^<div class="stat-number" id="suites"^>Loading...^</div^>
+            echo         ^</div^>
+            echo     ^</div^>
+            echo     ^<a href="index.html" class="main-report-link"^>View Detailed Report^</a^>
+            echo     ^<script^>
+            echo         fetch('dashboard.json'^).then(r =^> r.json(^)^).then(stats =^> {
+            echo             document.getElementById('totalTests'^).textContent = stats.total;
+            echo             document.getElementById('passedTests'^).textContent = stats.passed;
+            echo             document.getElementById('failedTests'^).textContent = stats.failed;
+            echo             document.getElementById('successRate'^).textContent = stats.passPercentage + '%%';
+            echo             document.getElementById('duration'^).textContent = (stats.duration / 1000^).toFixed(1^) + 's';
+            echo             document.getElementById('suites'^).textContent = stats.suites;
+            echo             setTimeout(^(^) =^> {
+            echo                 document.getElementById('progressFill'^).style.width = stats.passPercentage + '%%';
+            echo             }, 500^);
+            echo         }^);
+            echo     ^</script^>
+            echo ^</body^>
+            echo ^</html^>
+            ) > cypress/results/dashboard/dashboard.html
           '''
         }
       }
