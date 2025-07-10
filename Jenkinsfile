@@ -59,112 +59,112 @@ pipeline {
           bat '''
             npx marge cypress/results/merged-report.json ^
               --reportDir cypress/results/html ^
-              --reportFilename index.html ^
+              --reportFilename index ^
               --reportTitle "Cypress Test Dashboard - Build #%BUILD_NUMBER%" ^
               --reportPageTitle "Test Results Dashboard" ^
               --inline ^
               --charts ^
               --code ^
               --autoOpen false ^
-              --overwrite ^
-              --timestamp "mmddyyyy_HHMMss" ^
-              --showPassed true ^
-              --showFailed true ^
-              --showPending true ^
-              --showSkipped true ^
-              --enableCharts true ^
-              --enableCode true
+              --overwrite
           '''
           
-          // Step 3: Generate module-based summary report
-          bat '''
-            echo Creating module summary report...
-            powershell -Command "
-              $jsonContent = Get-Content 'cypress/results/merged-report.json' | ConvertFrom-Json;
-              $totalTests = $jsonContent.stats.tests;
-              $passedTests = $jsonContent.stats.passes;
-              $failedTests = $jsonContent.stats.failures;
-              $skippedTests = $jsonContent.stats.skipped;
-              $pendingTests = $jsonContent.stats.pending;
-              $passRate = [math]::Round(($passedTests / $totalTests) * 100, 2);
-              
-              $summaryHtml = @'
-              <!DOCTYPE html>
-              <html>
-              <head>
-                  <title>Test Summary Dashboard</title>
-                  <style>
-                      body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
-                      .container { max-width: 1200px; margin: 0 auto; }
-                      .header { background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-                      .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
-                      .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                      .stat-number { font-size: 2em; font-weight: bold; margin-bottom: 10px; }
-                      .stat-label { color: #666; font-size: 0.9em; }
-                      .passed { color: #27ae60; }
-                      .failed { color: #e74c3c; }
-                      .skipped { color: #95a5a6; }
-                      .pending { color: #f39c12; }
-                      .total { color: #2c3e50; }
-                      .progress-bar { width: 100%; height: 20px; background: #ecf0f1; border-radius: 10px; overflow: hidden; }
-                      .progress-fill { height: 100%; background: #27ae60; transition: width 0.3s ease; }
-                      .build-info { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-                  </style>
-              </head>
-              <body>
-                  <div class=\"container\">
-                      <div class=\"header\">
-                          <h1>Cypress Test Dashboard - Build #' + $env:BUILD_NUMBER + '</h1>
-                          <p>Generated on ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + '</p>
-                      </div>
-                      
-                      <div class=\"build-info\">
-                          <h3>Build Information</h3>
-                          <p><strong>Build Number:</strong> ' + $env:BUILD_NUMBER + '</p>
-                          <p><strong>Build URL:</strong> ' + $env:BUILD_URL + '</p>
-                          <p><strong>Overall Pass Rate:</strong> ' + $passRate + '%</p>
-                          <div class=\"progress-bar\">
-                              <div class=\"progress-fill\" style=\"width: ' + $passRate + '%;\"></div>
-                          </div>
-                      </div>
-                      
-                      <div class=\"stats-grid\">
-                          <div class=\"stat-card\">
-                              <div class=\"stat-number total\">' + $totalTests + '</div>
-                              <div class=\"stat-label\">Total Tests</div>
-                          </div>
-                          <div class=\"stat-card\">
-                              <div class=\"stat-number passed\">' + $passedTests + '</div>
-                              <div class=\"stat-label\">Passed</div>
-                          </div>
-                          <div class=\"stat-card\">
-                              <div class=\"stat-number failed\">' + $failedTests + '</div>
-                              <div class=\"stat-label\">Failed</div>
-                          </div>
-                          <div class=\"stat-card\">
-                              <div class=\"stat-number skipped\">' + $skippedTests + '</div>
-                              <div class=\"stat-label\">Skipped</div>
-                          </div>
-                          <div class=\"stat-card\">
-                              <div class=\"stat-number pending\">' + $pendingTests + '</div>
-                              <div class=\"stat-label\">Pending</div>
-                          </div>
-                      </div>
-                      
-                      <div style=\"text-align: center; margin-top: 30px;\">
-                          <a href=\"index.html\" style=\"background: #3498db; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 16px;\">
-                              View Detailed Report
-                          </a>
-                      </div>
-                  </div>
-              </body>
-              </html>
-'@;
-              
-              $summaryHtml | Out-File -FilePath 'cypress/results/html/dashboard.html' -Encoding UTF8;
-              Write-Host 'Dashboard summary created successfully';
-            "
-          '''
+          // Step 3: Create PowerShell script file for dashboard generation
+          writeFile file: 'create-dashboard.ps1', text: '''
+$jsonContent = Get-Content 'cypress/results/merged-report.json' | ConvertFrom-Json
+$totalTests = $jsonContent.stats.tests
+$passedTests = $jsonContent.stats.passes
+$failedTests = $jsonContent.stats.failures
+$skippedTests = $jsonContent.stats.skipped
+$pendingTests = $jsonContent.stats.pending
+$passRate = [math]::Round(($passedTests / $totalTests) * 100, 2)
+
+$summaryHtml = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Summary Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; margin-bottom: 10px; }
+        .stat-label { color: #666; font-size: 0.9em; }
+        .passed { color: #27ae60; }
+        .failed { color: #e74c3c; }
+        .skipped { color: #95a5a6; }
+        .pending { color: #f39c12; }
+        .total { color: #2c3e50; }
+        .progress-bar { width: 100%; height: 20px; background: #ecf0f1; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #27ae60; transition: width 0.3s ease; }
+        .build-info { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .module-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .module-header { font-size: 1.2em; font-weight: bold; margin-bottom: 15px; color: #2c3e50; }
+        .module-stats { display: flex; justify-content: space-between; align-items: center; }
+        .module-stat { text-align: center; }
+        .module-stat-number { font-size: 1.5em; font-weight: bold; }
+        .module-stat-label { font-size: 0.8em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Cypress Test Dashboard - Build #$env:BUILD_NUMBER</h1>
+            <p>Generated on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
+        </div>
+        
+        <div class="build-info">
+            <h3>Build Information</h3>
+            <p><strong>Build Number:</strong> $env:BUILD_NUMBER</p>
+            <p><strong>Build URL:</strong> $env:BUILD_URL</p>
+            <p><strong>Overall Pass Rate:</strong> $passRate%</p>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: $passRate%;"></div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number total">$totalTests</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number passed">$passedTests</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number failed">$failedTests</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number skipped">$skippedTests</div>
+                <div class="stat-label">Skipped</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number pending">$pendingTests</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="index.html" style="background: #3498db; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+                View Detailed Report
+            </a>
+        </div>
+    </div>
+</body>
+</html>
+"@
+
+`$summaryHtml | Out-File -FilePath 'cypress/results/html/dashboard.html' -Encoding UTF8
+Write-Host 'Dashboard summary created successfully'
+'''
+          
+          // Execute the PowerShell script
+          bat 'powershell -ExecutionPolicy Bypass -File create-dashboard.ps1'
         }
       }
     }
