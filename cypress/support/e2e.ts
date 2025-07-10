@@ -16,3 +16,19 @@ import "@shelex/cypress-allure-plugin";
 
 // Import commands.js using ES2015 syntax:
 import "./commands";
+
+Cypress.on("test:after:run", (test, runnable) => {
+  if (test.state === "failed") {
+    // Capture screenshot on failure
+    cy.screenshot(`${test.parent.title} -- ${test.title} (failed)`);
+  }
+});
+
+// Add custom commands or configurations here
+declare global {
+  namespace Cypress {
+    interface Chainable {
+      // Add your custom commands here if any
+    }
+  }
+}
