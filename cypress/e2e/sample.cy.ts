@@ -8,7 +8,7 @@ describe("HACK001", () => {
     const alertStub = cy.stub();
     cy.on("window:alert", alertStub);
 
-    cy.get("#username").type(username);
+    cy.get("#usersssssssname").type(username);
     cy.get("#password").type(validPassword);
     cy.contains("button", "Login").click();
 
