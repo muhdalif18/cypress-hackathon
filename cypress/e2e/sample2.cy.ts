@@ -3,7 +3,7 @@ describe("module2 - test module 2", () => {
   const validPassword = Cypress.env("HACKATHON_VALID_PASS");
   const invalidPassword = Cypress.env("HACKATHON_INVALID_PASS");
 
-  it("should login successfully with correct password and NOT show alert", () => {
+  it("should asdhdahd sahd asjdh dhkasj hdasjdajsdj", () => {
     cy.visit("/");
     const alertStub = cy.stub();
     cy.on("window:alert", alertStub);
