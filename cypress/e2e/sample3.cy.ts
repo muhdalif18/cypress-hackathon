@@ -10,6 +10,8 @@ describe("module3 - test module 3", () => {
 
     cy.get("#username").type(username);
     cy.get("#password").type(validPassword);
+    cy.get("#password").clear();
+    cy.get("#password").type(validPassword);
     cy.contains("button", "Login").click();
 
     // Assert alert was NOT called
