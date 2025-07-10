@@ -8,6 +8,7 @@ pipeline {
   environment {
     CYPRESS_CACHE_FOLDER = "${WORKSPACE}/.cypress-cache"
     NODE_ENV = 'ci'
+    CYPRESS_TESTS_FAILED = 'false'
   }
 
   stages {
@@ -28,7 +29,17 @@ pipeline {
 
     stage('Run Cypress Tests') {
       steps {
-        bat 'npx cypress run --reporter mochawesome --reporter-options "reportDir=cypress/results,overwrite=false,html=false,json=true,timestamp=mmddyyyy_HHMMss,charts=true,embeddedScreenshots=true,inlineAssets=true"'
+        script {
+          def result = bat(
+            script: 'npx cypress run --reporter mochawesome --reporter-options "reportDir=cypress/results,overwrite=false,html=false,json=true,timestamp=mmddyyyy_HHMMss,charts=true,embeddedScreenshots=true,inlineAssets=true"',
+            returnStatus: true
+          )
+          
+          if (result != 0) {
+            env.CYPRESS_TESTS_FAILED = 'true'
+            echo "Cypress tests failed, but continuing with report generation..."
+          }
+        }
       }
       post {
         failure {
@@ -38,54 +49,92 @@ pipeline {
     }
 
     stage('Generate Enhanced Dashboard') {
+      // This stage will always run, even if tests failed
+      when {
+        anyOf {
+          expression { env.CYPRESS_TESTS_FAILED == 'true' }
+          expression { env.CYPRESS_TESTS_FAILED == 'false' }
+        }
+      }
       steps {
         script {
           // Create enhanced reports directory
           bat 'if not exist "cypress\\results\\dashboard" mkdir "cypress\\results\\dashboard"'
           
-          // Merge all JSON reports
-          bat 'npx mochawesome-merge "cypress/results/mochawesome*.json" > cypress/results/merged-report.json'
+          // Check if any JSON reports exist
+          def jsonFiles = bat(
+            script: 'dir "cypress\\results\\mochawesome*.json" 2>nul',
+            returnStatus: true
+          )
           
-          // Generate enhanced HTML report with dashboard features
-          bat '''
-            npx marge cypress/results/merged-report.json ^
-            --reportDir cypress/results/dashboard ^
-            --reportFilename index ^
-            --inline ^
-            --charts ^
-            --code ^
-            --reportTitle "Cypress Test Dashboard - Build #%BUILD_NUMBER%" ^
-            --reportPageTitle "Test Results Dashboard" ^
-            --showPassed true ^
-            --showFailed true ^
-            --showPending true ^
-            --showSkipped true ^
-            --enableCharts true ^
-            --overwrite
-          '''
+          if (jsonFiles == 0) {
+            // Merge all JSON reports
+            bat 'npx mochawesome-merge "cypress/results/mochawesome*.json" > cypress/results/merged-report.json'
+            
+            // Generate enhanced HTML report with dashboard features
+            bat '''
+              npx marge cypress/results/merged-report.json ^
+              --reportDir cypress/results/dashboard ^
+              --reportFilename index ^
+              --inline ^
+              --charts ^
+              --code ^
+              --reportTitle "Cypress Test Dashboard - Build #%BUILD_NUMBER%" ^
+              --reportPageTitle "Test Results Dashboard" ^
+              --showPassed true ^
+              --showFailed true ^
+              --showPending true ^
+              --showSkipped true ^
+              --enableCharts true ^
+              --overwrite
+            '''
+            
+            // Create dashboard generation script
+            bat '''
+              echo const fs = require('fs'); > generate-dashboard.js
+              echo const report = JSON.parse(fs.readFileSync('cypress/results/merged-report.json', 'utf8')); >> generate-dashboard.js
+              echo const stats = { >> generate-dashboard.js
+              echo   total: report.stats.tests, >> generate-dashboard.js
+              echo   passed: report.stats.passes, >> generate-dashboard.js
+              echo   failed: report.stats.failures, >> generate-dashboard.js
+              echo   pending: report.stats.pending, >> generate-dashboard.js
+              echo   skipped: report.stats.skipped, >> generate-dashboard.js
+              echo   passPercentage: ((report.stats.passes / report.stats.tests) * 100).toFixed(2), >> generate-dashboard.js
+              echo   duration: report.stats.duration, >> generate-dashboard.js
+              echo   suites: report.stats.suites >> generate-dashboard.js
+              echo }; >> generate-dashboard.js
+              echo fs.writeFileSync('cypress/results/dashboard/dashboard.json', JSON.stringify(stats, null, 2)); >> generate-dashboard.js
+              echo console.log('Dashboard data generated successfully'); >> generate-dashboard.js
+            '''
+            
+            // Run the dashboard generation script
+            bat 'node generate-dashboard.js'
+          } else {
+            echo "No test results found - creating empty dashboard"
+            
+            // Create empty dashboard data
+            bat '''
+              echo { > cypress/results/dashboard/dashboard.json
+              echo   "total": 0, >> cypress/results/dashboard/dashboard.json
+              echo   "passed": 0, >> cypress/results/dashboard/dashboard.json
+              echo   "failed": 0, >> cypress/results/dashboard/dashboard.json
+              echo   "pending": 0, >> cypress/results/dashboard/dashboard.json
+              echo   "skipped": 0, >> cypress/results/dashboard/dashboard.json
+              echo   "passPercentage": "0.00", >> cypress/results/dashboard/dashboard.json
+              echo   "duration": 0, >> cypress/results/dashboard/dashboard.json
+              echo   "suites": 0 >> cypress/results/dashboard/dashboard.json
+              echo } >> cypress/results/dashboard/dashboard.json
+            '''
+            
+            // Create empty detailed report
+            bat '''
+              echo ^<!DOCTYPE html^> > cypress/results/dashboard/index.html
+              echo ^<html^>^<head^>^<title^>No Test Results^</title^>^</head^> >> cypress/results/dashboard/index.html
+              echo ^<body^>^<h1^>No test results available^</h1^>^</body^>^</html^> >> cypress/results/dashboard/index.html
+            '''
+          }
           
-          // Create a separate Node.js script for dashboard generation
-          bat '''
-            echo const fs = require('fs'); > generate-dashboard.js
-            echo const report = JSON.parse(fs.readFileSync('cypress/results/merged-report.json', 'utf8')); >> generate-dashboard.js
-            echo const stats = { >> generate-dashboard.js
-            echo   total: report.stats.tests, >> generate-dashboard.js
-            echo   passed: report.stats.passes, >> generate-dashboard.js
-            echo   failed: report.stats.failures, >> generate-dashboard.js
-            echo   pending: report.stats.pending, >> generate-dashboard.js
-            echo   skipped: report.stats.skipped, >> generate-dashboard.js
-            echo   passPercentage: ((report.stats.passes / report.stats.tests) * 100).toFixed(2), >> generate-dashboard.js
-            echo   duration: report.stats.duration, >> generate-dashboard.js
-            echo   suites: report.stats.suites >> generate-dashboard.js
-            echo }; >> generate-dashboard.js
-            echo fs.writeFileSync('cypress/results/dashboard/dashboard.json', JSON.stringify(stats, null, 2)); >> generate-dashboard.js
-            echo console.log('Dashboard data generated successfully'); >> generate-dashboard.js
-          '''
-          
-          // Run the dashboard generation script
-          bat 'node generate-dashboard.js'
-          
-          // Create the dashboard HTML file
+          // Create the dashboard HTML file (always create this)
           bat '''
             (
             echo ^<!DOCTYPE html^>
@@ -103,14 +152,20 @@ pipeline {
             echo         .pending { color: #ffc107; }
             echo         .skipped { color: #6c757d; }
             echo         .percentage { font-size: 1.8em; font-weight: bold; color: #28a745; }
+            echo         .percentage.failed { color: #dc3545; }
             echo         .progress-bar { width: 100%%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; }
             echo         .progress-fill { height: 100%%; background: #28a745; transition: width 0.3s ease; }
+            echo         .progress-fill.failed { background: #dc3545; }
             echo         .main-report-link { display: inline-block; margin: 20px 0; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
             echo         .main-report-link:hover { background: #0056b3; }
+            echo         .build-status { padding: 10px; margin: 10px 0; border-radius: 5px; font-weight: bold; }
+            echo         .build-status.success { background: #d4edda; color: #155724; }
+            echo         .build-status.failure { background: #f8d7da; color: #721c24; }
             echo     ^</style^>
             echo ^</head^>
             echo ^<body^>
             echo     ^<h1^>Cypress Test Dashboard - Build #%BUILD_NUMBER%^</h1^>
+            echo     ^<div class="build-status" id="buildStatus"^>Loading...^</div^>
             echo     ^<div class="dashboard"^>
             echo         ^<div class="card"^>
             echo             ^<div class="stat-label"^>Total Tests^</div^>
@@ -143,15 +198,30 @@ pipeline {
             echo     ^<a href="index.html" class="main-report-link"^>View Detailed Report^</a^>
             echo     ^<script^>
             echo         fetch('dashboard.json'^).then(r =^> r.json(^)^).then(stats =^> {
+            echo             const buildStatus = document.getElementById('buildStatus'^);
+            echo             const successRate = document.getElementById('successRate'^);
+            echo             const progressFill = document.getElementById('progressFill'^);
             echo             document.getElementById('totalTests'^).textContent = stats.total;
             echo             document.getElementById('passedTests'^).textContent = stats.passed;
             echo             document.getElementById('failedTests'^).textContent = stats.failed;
-            echo             document.getElementById('successRate'^).textContent = stats.passPercentage + '%%';
             echo             document.getElementById('duration'^).textContent = (stats.duration / 1000^).toFixed(1^) + 's';
             echo             document.getElementById('suites'^).textContent = stats.suites;
+            echo             if (stats.failed ^> 0^) {
+            echo                 buildStatus.className = 'build-status failure';
+            echo                 buildStatus.textContent = 'Build Failed - ' + stats.failed + ' test(s^) failed';
+            echo                 successRate.className = 'percentage failed';
+            echo                 progressFill.className = 'progress-fill failed';
+            echo             } else {
+            echo                 buildStatus.className = 'build-status success';
+            echo                 buildStatus.textContent = 'Build Successful - All tests passed!';
+            echo             }
+            echo             successRate.textContent = stats.passPercentage + '%%';
             echo             setTimeout(^(^) =^> {
-            echo                 document.getElementById('progressFill'^).style.width = stats.passPercentage + '%%';
+            echo                 progressFill.style.width = stats.passPercentage + '%%';
             echo             }, 500^);
+            echo         }^).catch(err =^> {
+            echo             document.getElementById('buildStatus'^).textContent = 'Error loading test results';
+            echo             console.error('Error loading dashboard data:', err^);
             echo         }^);
             echo     ^</script^>
             echo ^</body^>
@@ -166,13 +236,13 @@ pipeline {
   post {
     always {
       // Archive all artifacts
-      archiveArtifacts artifacts: 'cypress/results/dashboard/**', fingerprint: true
+      archiveArtifacts artifacts: 'cypress/results/dashboard/**', fingerprint: true, allowEmptyArchive: true
       archiveArtifacts artifacts: 'cypress/videos/**/*.mp4', allowEmptyArchive: true
       archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
       
       // Publish both dashboard and detailed report
       publishHTML([
-        allowMissing: false,
+        allowMissing: true,
         alwaysLinkToLastBuild: true,
         keepAll: true,
         reportDir: 'cypress/results/dashboard',
@@ -183,7 +253,7 @@ pipeline {
       ])
       
       publishHTML([
-        allowMissing: false,
+        allowMissing: true,
         alwaysLinkToLastBuild: true,
         keepAll: true,
         reportDir: 'cypress/results/dashboard',
@@ -192,6 +262,13 @@ pipeline {
         reportTitles: '',
         escapeUnderscores: false
       ])
+      
+      // Set build result based on test results
+      script {
+        if (env.CYPRESS_TESTS_FAILED == 'true') {
+          currentBuild.result = 'FAILURE'
+        }
+      }
       
       cleanWs()
     }
