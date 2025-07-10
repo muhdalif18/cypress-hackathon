@@ -62,25 +62,22 @@ pipeline {
       archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
       
       // SOLUTION 1: Configure HTML Publisher with CSP bypass
-     publishHTML([
-  allowMissing: false,
-  alwaysLinkToLastBuild: true,
-  keepAll: true,
-  reportDir: 'cypress/results/html',
-  reportFiles: 'report.html',
-  reportName: 'Cypress Test Report',
-  reportTitles: 'Test Results',
-  // Enhanced CSP bypass settings
-  escapeUnderscores: false,
-  includes: '**/*',
-  // Additional CSP bypass options
-  allowMissing: false,
-  alwaysLinkToLastBuild: true,
-  keepAll: true,
-  // Try adding these if available in your Jenkins version
-  disable: false,
-  useWrapperFileDirectly: true
-])
+      publishHTML([
+        allowMissing: false,
+        alwaysLinkToLastBuild: true,
+        keepAll: true,
+        reportDir: 'cypress/results/html',
+        reportFiles: 'report.html',
+        reportName: 'Cypress Test Report',
+        reportTitles: 'Test Results',
+        // Critical CSP bypass settings
+        escapeUnderscores: false,
+        includes: '**/*',
+        // Add these for CSP bypass
+        allowMissing: false,
+        alwaysLinkToLastBuild: true,
+        keepAll: true
+      ])
       
       // SOLUTION 2: Alternative simple text summary
       script {
