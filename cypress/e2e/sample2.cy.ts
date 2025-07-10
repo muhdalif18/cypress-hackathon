@@ -1,4 +1,4 @@
-describe("module1 - Case Sensitivity Check", () => {
+describe("module123 - Case Sensitivity Check", () => {
   const username = Cypress.env("HACKATHON_USER");
   const validPassword = Cypress.env("HACKATHON_VALID_PASS");
   const invalidPassword = Cypress.env("HACKATHON_INVALID_PASS");
@@ -20,24 +20,4 @@ describe("module1 - Case Sensitivity Check", () => {
     // Assert redirection to items.html
     cy.url().should("include", "/items.html");
   });
-
-  /* it("should reject login with UPPERCASE password and show alert", () => {
-    cy.visit("/");
-
-    // Listen to alert and assert the message
-    const alertStub = cy.stub();
-    cy.on("window:alert", alertStub);
-
-    cy.get("#username").type(username);
-    cy.get("#password").type(invalidPassword);
-    cy.contains("button", "Login").click();
-
-    // Assert that the alert was called with correct message
-    cy.then(() => {
-      expect(alertStub).to.have.been.called;
-    });
-
-    // Optional: Ensure the URL did NOT redirect
-    cy.url().should("not.include", "/items.html");
-  }); */
 });
