@@ -46,9 +46,9 @@ pipeline {
           // Create reports directory if it doesn't exist
           bat 'if not exist "cypress\\results\\html" mkdir "cypress\\results\\html"'
           
-          // Merge reports and generate HTML
+          // Merge reports and generate HTML with CSP-friendly options
           bat 'npx mochawesome-merge "cypress/results/mochawesome*.json" > cypress/results/report.json'
-          bat 'npx marge cypress/results/report.json --reportDir cypress/results/html --inline --charts --reportTitle "Cypress Test Report - Build #${BUILD_NUMBER}" --reportPageTitle "Test Results"'
+          bat 'npx marge cypress/results/report.json --reportDir cypress/results/html --inline --charts --reportTitle "Cypress Test Report - Build #${BUILD_NUMBER}" --reportPageTitle "Test Results" --overwrite'
         }
       }
     }
@@ -61,7 +61,7 @@ pipeline {
       archiveArtifacts artifacts: 'cypress/videos/**/*.mp4', allowEmptyArchive: true
       archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
       
-      // Publish HTML Report with CSP bypass
+      // SOLUTION 1: Configure HTML Publisher with CSP bypass
       publishHTML([
         allowMissing: false,
         alwaysLinkToLastBuild: true,
@@ -70,14 +70,16 @@ pipeline {
         reportFiles: 'report.html',
         reportName: 'Cypress Test Report',
         reportTitles: 'Test Results',
-        // Add these options to bypass CSP issues
+        // Critical CSP bypass settings
+        escapeUnderscores: false,
         includes: '**/*',
+        // Add these for CSP bypass
         allowMissing: false,
         alwaysLinkToLastBuild: true,
         keepAll: true
       ])
       
-      // Alternative: Also create a simple text summary
+      // SOLUTION 2: Alternative simple text summary
       script {
         bat 'echo Test Summary Report > cypress/results/summary.txt'
         bat 'echo Build Number: ${BUILD_NUMBER} >> cypress/results/summary.txt'
