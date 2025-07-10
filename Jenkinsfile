@@ -1,20 +1,4 @@
-// package.json - Required dependencies
-{
-  "devDependencies": {
-    "cypress": "^13.0.0",
-    "mochawesome": "^7.1.3",
-    "mochawesome-merge": "^4.3.0",
-    "marge": "^1.0.1"
-  },
-  "scripts": {
-    "cy:run": "cypress run",
-    "cy:report": "npm run cy:merge && npm run cy:generate",
-    "cy:merge": "mochawesome-merge cypress/results/mochawesome*.json > cypress/results/report.json",
-    "cy:generate": "marge cypress/results/report.json --reportDir cypress/results/html --inline --charts"
-  }
-}
-
-// cypress.config.ts - Enhanced configuration
+// 1. UPDATE cypress.config.ts - Add enhanced reporter options
 import { defineConfig } from "cypress";
 
 export default defineConfig({
@@ -25,65 +9,41 @@ export default defineConfig({
     html: false,
     json: true,
     timestamp: "mmddyyyy_HHMMss",
-    // Enhanced report options
+    // KEY: Add these options for enhanced reporting
     charts: true,
     embeddedScreenshots: true,
     inlineAssets: true,
     saveAllAttempts: false,
-    ignoreVideos: false,
-    videoOnFailOnly: false
+    quiet: true,
+    reportTitle: "Cypress Test Report",
+    reportPageTitle: "Test Results Dashboard"
   },
 
   e2e: {
     baseUrl: "https://my-shop-eight-theta.vercel.app/",
-    specPattern: "cypress/e2e/**/*.cy.{js,jsx,ts,tsx}",
-    
-    // Professional settings
+    specPattern: "cypress/e2e/**/*.ts",
+    setupNodeEvents(on, config) {
+      // implement node event listeners here
+    },
     viewportWidth: 1920,
     viewportHeight: 1080,
     video: true,
     videosFolder: "cypress/videos",
     screenshotOnRunFailure: true,
     screenshotsFolder: "cypress/screenshots",
-    
-    // Retry configuration
     retries: {
       runMode: 2,
       openMode: 0,
     },
-    
-    // Timeouts
     defaultCommandTimeout: 10000,
     pageLoadTimeout: 30000,
     requestTimeout: 10000,
     responseTimeout: 10000,
-    
     testIsolation: true,
-    
-    setupNodeEvents(on, config) {
-      // Custom event listeners for enhanced reporting
-      on('task', {
-        log(message) {
-          console.log(message);
-          return null;
-        },
-        table(message) {
-          console.table(message);
-          return null;
-        }
-      });
-
-      // Screenshot customization
-      on('after:screenshot', (details) => {
-        console.log('Screenshot taken', details);
-      });
-
-      return config;
-    },
   },
 });
 
-// Enhanced Jenkinsfile with professional reporting
+// 2. UPDATE Jenkinsfile - Enhanced report generation
 pipeline {
   agent any
 
@@ -94,152 +54,129 @@ pipeline {
   environment {
     CYPRESS_CACHE_FOLDER = "${WORKSPACE}/.cypress-cache"
     NODE_ENV = 'ci'
-    CYPRESS_RECORD_KEY = credentials('cypress-record-key') // Optional: for Cypress Dashboard
   }
 
   stages {
     stage('Clean Workspace') {
       steps {
-        script {
-          if (isUnix()) {
-            sh 'rm -rf cypress/results cypress/videos cypress/screenshots'
-          } else {
-            bat '''
-              if exist "cypress\\results" rmdir /s /q "cypress\\results"
-              if exist "cypress\\videos" rmdir /s /q "cypress\\videos"
-              if exist "cypress\\screenshots" rmdir /s /q "cypress\\screenshots"
-            '''
-          }
-        }
+        bat '''
+          if exist "cypress\\results" rmdir /s /q "cypress\\results"
+          if exist "cypress\\videos" rmdir /s /q "cypress\\videos"
+          if exist "cypress\\screenshots" rmdir /s /q "cypress\\screenshots"
+        '''
       }
     }
 
     stage('Install Dependencies') {
       steps {
-        script {
-          if (isUnix()) {
-            sh '''
-              npm ci
-              npx cypress install
-              npx cypress verify
-            '''
-          } else {
-            bat '''
-              npm ci
-              npx cypress install
-              npx cypress verify
-            '''
-          }
-        }
+        bat '''
+          npm ci
+          npx cypress install
+        '''
       }
     }
 
     stage('Run Cypress Tests') {
-      parallel {
-        stage('Chrome Tests') {
-          steps {
-            script {
-              if (isUnix()) {
-                sh 'npx cypress run --browser chrome --reporter mochawesome --reporter-options "reportDir=cypress/results/chrome,overwrite=false,html=false,json=true,timestamp=mmddyyyy_HHMMss"'
-              } else {
-                bat 'npx cypress run --browser chrome --reporter mochawesome --reporter-options "reportDir=cypress/results/chrome,overwrite=false,html=false,json=true,timestamp=mmddyyyy_HHMMss"'
-              }
-            }
-          }
-        }
-        stage('Firefox Tests') {
-          steps {
-            script {
-              if (isUnix()) {
-                sh 'npx cypress run --browser firefox --reporter mochawesome --reporter-options "reportDir=cypress/results/firefox,overwrite=false,html=false,json=true,timestamp=mmddyyyy_HHMMss"'
-              } else {
-                bat 'npx cypress run --browser firefox --reporter mochawesome --reporter-options "reportDir=cypress/results/firefox,overwrite=false,html=false,json=true,timestamp=mmddyyyy_HHMMss"'
-              }
-            }
-          }
-        }
+      steps {
+        bat '''
+          npx cypress run --reporter mochawesome --reporter-options "reportDir=cypress/results,overwrite=false,html=false,json=true,timestamp=mmddyyyy_HHMMss,charts=true,embeddedScreenshots=true,inlineAssets=true"
+        '''
       }
       post {
         failure {
           archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
-          archiveArtifacts artifacts: 'cypress/videos/**/*.mp4', allowEmptyArchive: true
         }
       }
     }
 
-    stage('Generate Professional Report') {
+    stage('Generate Enhanced Dashboard Report') {
       steps {
         script {
-          if (isUnix()) {
-            sh '''
-              mkdir -p cypress/results/html
-              # Merge all JSON reports
-              npx mochawesome-merge "cypress/results/**/*.json" > cypress/results/report.json
-              
-              # Generate enhanced HTML report
-              npx marge cypress/results/report.json \\
-                --reportDir cypress/results/html \\
-                --inline \\
-                --charts \\
-                --reportTitle "Cypress Test Report - Build #${BUILD_NUMBER}" \\
-                --reportPageTitle "Test Results - ${JOB_NAME}" \\
-                --overwrite \\
-                --timestamp "mmddyyyy_HHMMss" \\
-                --showPassed true \\
-                --showFailed true \\
-                --showPending true \\
-                --showSkipped true \\
-                --enableCharts true \\
-                --enableCode true
-            '''
-          } else {
-            bat '''
-              if not exist "cypress\\results\\html" mkdir "cypress\\results\\html"
-              npx mochawesome-merge "cypress/results/**/*.json" > cypress/results/report.json
-              npx marge cypress/results/report.json --reportDir cypress/results/html --inline --charts --reportTitle "Cypress Test Report - Build #%BUILD_NUMBER%" --reportPageTitle "Test Results" --overwrite --showPassed true --showFailed true --showPending true --showSkipped true --enableCharts true --enableCode true
-            '''
-          }
+          bat '''
+            if not exist "cypress\\results\\html" mkdir "cypress\\results\\html"
+            
+            REM Merge all JSON reports
+            npx mochawesome-merge "cypress/results/mochawesome*.json" > cypress/results/report.json
+            
+            REM Generate ENHANCED HTML report with all dashboard features
+            npx marge cypress/results/report.json ^
+              --reportDir cypress/results/html ^
+              --inline ^
+              --charts ^
+              --enableCharts ^
+              --code ^
+              --autoOpen false ^
+              --reportTitle "Cypress Test Dashboard - Build #%BUILD_NUMBER%" ^
+              --reportPageTitle "Test Results Dashboard" ^
+              --overwrite ^
+              --showPassed true ^
+              --showFailed true ^
+              --showPending true ^
+              --showSkipped true ^
+              --showHooks always ^
+              --saveJson true ^
+              --dev false ^
+              --assetsDir cypress/results/html/assets ^
+              --timestamp "mmddyyyy_HHMMss"
+          '''
         }
       }
     }
 
-    stage('Generate Summary Report') {
+    stage('Generate Summary Dashboard') {
       steps {
         script {
-          // Create a custom summary
-          def reportData = readJSON file: 'cypress/results/report.json'
-          def summary = [
-            buildNumber: env.BUILD_NUMBER,
-            buildUrl: env.BUILD_URL,
-            totalTests: reportData.stats.tests,
-            passed: reportData.stats.passes,
-            failed: reportData.stats.failures,
-            pending: reportData.stats.pending,
-            skipped: reportData.stats.skipped,
-            duration: reportData.stats.duration,
-            passPercentage: ((reportData.stats.passes / reportData.stats.tests) * 100).round(2)
-          ]
-          
-          writeJSON file: 'cypress/results/summary.json', json: summary
-          
-          // Create text summary
-          if (isUnix()) {
-            sh '''
-              echo "=== Cypress Test Summary ===" > cypress/results/summary.txt
-              echo "Build: #${BUILD_NUMBER}" >> cypress/results/summary.txt
-              echo "Date: $(date)" >> cypress/results/summary.txt
-              echo "Total Tests: $(jq '.totalTests' cypress/results/summary.json)" >> cypress/results/summary.txt
-              echo "Passed: $(jq '.passed' cypress/results/summary.json)" >> cypress/results/summary.txt
-              echo "Failed: $(jq '.failed' cypress/results/summary.json)" >> cypress/results/summary.txt
-              echo "Pass Rate: $(jq '.passPercentage' cypress/results/summary.json)%" >> cypress/results/summary.txt
-            '''
-          } else {
-            bat '''
-              echo === Cypress Test Summary === > cypress/results/summary.txt
-              echo Build: #%BUILD_NUMBER% >> cypress/results/summary.txt
-              echo Date: %DATE% %TIME% >> cypress/results/summary.txt
-            '''
-          }
+          // Create custom dashboard HTML
+          bat '''
+            echo ^<!DOCTYPE html^> > cypress/results/html/dashboard.html
+            echo ^<html^> >> cypress/results/html/dashboard.html
+            echo ^<head^> >> cypress/results/html/dashboard.html
+            echo ^<title^>Cypress Test Dashboard^</title^> >> cypress/results/html/dashboard.html
+            echo ^<meta charset="utf-8"^> >> cypress/results/html/dashboard.html
+            echo ^<meta name="viewport" content="width=device-width, initial-scale=1"^> >> cypress/results/html/dashboard.html
+            echo ^<style^> >> cypress/results/html/dashboard.html
+            echo body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; } >> cypress/results/html/dashboard.html
+            echo .dashboard { max-width: 1200px; margin: 0 auto; } >> cypress/results/html/dashboard.html
+            echo .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } >> cypress/results/html/dashboard.html
+            echo .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; } >> cypress/results/html/dashboard.html
+            echo .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; } >> cypress/results/html/dashboard.html
+            echo .stat-number { font-size: 2em; font-weight: bold; margin-bottom: 10px; } >> cypress/results/html/dashboard.html
+            echo .passed { color: #28a745; } >> cypress/results/html/dashboard.html
+            echo .failed { color: #dc3545; } >> cypress/results/html/dashboard.html
+            echo .pending { color: #ffc107; } >> cypress/results/html/dashboard.html
+            echo .skipped { color: #6c757d; } >> cypress/results/html/dashboard.html
+            echo .report-link { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; margin-top: 20px; } >> cypress/results/html/dashboard.html
+            echo ^</style^> >> cypress/results/html/dashboard.html
+            echo ^</head^> >> cypress/results/html/dashboard.html
+            echo ^<body^> >> cypress/results/html/dashboard.html
+            echo ^<div class="dashboard"^> >> cypress/results/html/dashboard.html
+            echo ^<div class="header"^> >> cypress/results/html/dashboard.html
+            echo ^<h1^>Cypress Test Dashboard^</h1^> >> cypress/results/html/dashboard.html
+            echo ^<p^>Build #%BUILD_NUMBER% - %DATE% %TIME%^</p^> >> cypress/results/html/dashboard.html
+            echo ^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stats-grid"^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-card"^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-number passed"^>Loading...^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div^>Passed^</div^> >> cypress/results/html/dashboard.html
+            echo ^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-card"^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-number failed"^>Loading...^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div^>Failed^</div^> >> cypress/results/html/dashboard.html
+            echo ^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-card"^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-number pending"^>Loading...^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div^>Pending^</div^> >> cypress/results/html/dashboard.html
+            echo ^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-card"^> >> cypress/results/html/dashboard.html
+            echo ^<div class="stat-number skipped"^>Loading...^</div^> >> cypress/results/html/dashboard.html
+            echo ^<div^>Skipped^</div^> >> cypress/results/html/dashboard.html
+            echo ^</div^> >> cypress/results/html/dashboard.html
+            echo ^</div^> >> cypress/results/html/dashboard.html
+            echo ^<a href="report.html" class="report-link"^>View Detailed Report^</a^> >> cypress/results/html/dashboard.html
+            echo ^</div^> >> cypress/results/html/dashboard.html
+            echo ^</body^> >> cypress/results/html/dashboard.html
+            echo ^</html^> >> cypress/results/html/dashboard.html
+          '''
         }
       }
     }
@@ -247,134 +184,113 @@ pipeline {
 
   post {
     always {
-      // Archive all artifacts
-      archiveArtifacts artifacts: 'cypress/results/**/*', fingerprint: true
+      archiveArtifacts artifacts: 'cypress/results/html/**', fingerprint: true
       archiveArtifacts artifacts: 'cypress/videos/**/*.mp4', allowEmptyArchive: true
       archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
       
-      // Publish HTML Report with CSP bypass
+      // CRITICAL: Publish the enhanced report
       publishHTML([
         allowMissing: false,
         alwaysLinkToLastBuild: true,
         keepAll: true,
         reportDir: 'cypress/results/html',
         reportFiles: 'report.html',
-        reportName: 'Cypress Test Report',
-        reportTitles: 'Detailed Test Results',
+        reportName: 'Cypress Test Dashboard',
+        reportTitles: 'Test Results Dashboard',
         escapeUnderscores: false,
         includes: '**/*'
       ])
       
-      // Publish Test Results
-      publishTestResults testResultsPattern: 'cypress/results/report.json'
-      
-      // Send notifications
-      script {
-        def summary = readJSON file: 'cypress/results/summary.json'
-        def message = """
-          🧪 Cypress Test Results - Build #${env.BUILD_NUMBER}
-          📊 Total Tests: ${summary.totalTests}
-          ✅ Passed: ${summary.passed}
-          ❌ Failed: ${summary.failed}
-          📈 Pass Rate: ${summary.passPercentage}%
-          🔗 Report: ${env.BUILD_URL}Cypress_Test_Report/
-        """
-        
-        if (summary.failed > 0) {
-          slackSend channel: '#testing', color: 'danger', message: message
-        } else {
-          slackSend channel: '#testing', color: 'good', message: message
-        }
-      }
+      // Also publish the simple dashboard
+      publishHTML([
+        allowMissing: false,
+        alwaysLinkToLastBuild: true,
+        keepAll: true,
+        reportDir: 'cypress/results/html',
+        reportFiles: 'dashboard.html',
+        reportName: 'Test Summary Dashboard',
+        reportTitles: 'Summary Dashboard',
+        escapeUnderscores: false,
+        includes: '**/*'
+      ])
     }
     
     success {
-      echo '🎉 All tests passed!'
+      echo 'Tests passed! 🎉'
     }
     
     failure {
-      echo '❌ Some tests failed. Check the report for details.'
+      echo 'Tests failed! Check the dashboard for details.'
     }
   }
 }
 
-// cypress/support/commands.js - Custom commands for better reporting
-Cypress.Commands.add('logStep', (message) => {
-  cy.log(`📝 ${message}`);
-  cy.task('log', `Step: ${message}`);
-});
-
-Cypress.Commands.add('captureScreenshot', (name) => {
-  cy.screenshot(name, { capture: 'fullPage' });
-});
-
-// Example test with enhanced reporting
-describe('E-commerce Application Tests', () => {
-  beforeEach(() => {
-    cy.logStep('Starting test execution');
-    cy.visit('/');
-  });
-
-  it('should display homepage correctly', () => {
-    cy.logStep('Validating homepage elements');
-    cy.get('[data-cy=header]').should('be.visible');
-    cy.get('[data-cy=product-grid]').should('exist');
-    cy.captureScreenshot('homepage-loaded');
-  });
-
-  it('should handle user authentication', () => {
-    cy.logStep('Testing login functionality');
-    cy.get('[data-cy=login-button]').click();
+// 3. Create multiple test suites to get module breakdown
+// cypress/e2e/login.cy.ts
+describe('Login Functionality', () => {
+  it('should login successfully with valid credentials', () => {
+    cy.visit('/login');
     cy.get('[data-cy=username]').type('testuser');
     cy.get('[data-cy=password]').type('password123');
     cy.get('[data-cy=submit]').click();
     cy.url().should('include', '/dashboard');
-    cy.captureScreenshot('login-success');
+  });
+
+  it('should show error for invalid credentials', () => {
+    cy.visit('/login');
+    cy.get('[data-cy=username]').type('wronguser');
+    cy.get('[data-cy=password]').type('wrongpass');
+    cy.get('[data-cy=submit]').click();
+    cy.get('[data-cy=error]').should('be.visible');
   });
 });
 
-// Custom HTML template for enhanced reporting (optional)
-// cypress/support/report-template.html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Cypress Test Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { background: #f8f9fa; padding: 20px; border-radius: 8px; }
-        .stats { display: flex; gap: 20px; margin: 20px 0; }
-        .stat-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .passed { border-left: 4px solid #28a745; }
-        .failed { border-left: 4px solid #dc3545; }
-        .pending { border-left: 4px solid #ffc107; }
-        .skipped { border-left: 4px solid #6c757d; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Cypress Test Report</h1>
-        <p>Build #{{BUILD_NUMBER}} - {{DATE}}</p>
-    </div>
-    
-    <div class="stats">
-        <div class="stat-card passed">
-            <h3>{{PASSED}}</h3>
-            <p>Passed</p>
-        </div>
-        <div class="stat-card failed">
-            <h3>{{FAILED}}</h3>
-            <p>Failed</p>
-        </div>
-        <div class="stat-card pending">
-            <h3>{{PENDING}}</h3>
-            <p>Pending</p>
-        </div>
-        <div class="stat-card skipped">
-            <h3>{{SKIPPED}}</h3>
-            <p>Skipped</p>
-        </div>
-    </div>
-    
-    {{MOCHAWESOME_REPORT}}
-</body>
-</html>
+// cypress/e2e/products.cy.ts
+describe('Product Management', () => {
+  beforeEach(() => {
+    cy.visit('/products');
+  });
+
+  it('should display product list', () => {
+    cy.get('[data-cy=product-list]').should('be.visible');
+    cy.get('[data-cy=product-item]').should('have.length.greaterThan', 0);
+  });
+
+  it('should allow adding products to cart', () => {
+    cy.get('[data-cy=add-to-cart]').first().click();
+    cy.get('[data-cy=cart-count]').should('contain', '1');
+  });
+});
+
+// cypress/e2e/checkout.cy.ts
+describe('Checkout Process', () => {
+  beforeEach(() => {
+    cy.visit('/cart');
+  });
+
+  it('should complete checkout process', () => {
+    cy.get('[data-cy=checkout-button]').click();
+    cy.get('[data-cy=billing-form]').should('be.visible');
+    cy.get('[data-cy=complete-order]').click();
+    cy.get('[data-cy=success-message]').should('be.visible');
+  });
+});
+
+// 4. Package.json scripts for local testing
+{
+  "scripts": {
+    "test": "cypress run",
+    "test:report": "npm run test && npm run generate:report",
+    "generate:report": "npx mochawesome-merge cypress/results/mochawesome*.json > cypress/results/report.json && npx marge cypress/results/report.json --reportDir cypress/results/html --inline --charts --enableCharts --code --reportTitle 'Cypress Test Dashboard' --showPassed true --showFailed true --showPending true --showSkipped true"
+  }
+}
+
+// 5. IMPORTANT: Check your package.json dependencies
+{
+  "devDependencies": {
+    "cypress": "^13.0.0",
+    "mochawesome": "^7.1.3",
+    "mochawesome-merge": "^4.3.0",
+    "marge": "^1.0.1"
+  }
+}
