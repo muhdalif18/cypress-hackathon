@@ -1,0 +1,12 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+healthcheckPath = "/login"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[env]
+JENKINS_OPTS = "--httpPort=8080"
+JAVA_OPTS = "-Djenkins.install.runSetupWizard=false -Xmx1024m"
