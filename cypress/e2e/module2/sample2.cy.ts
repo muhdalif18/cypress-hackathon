@@ -1,4 +1,4 @@
-describe("Login Functionality - Case Sensitivity Check", () => {
+describe("module1 - aaa", () => {
   it("should login successfully with correct password and NOT show alert", () => {
     cy.userLoginHackathon();
 

@@ -1,4 +1,4 @@
-describe("Login Functionality - Case Sensitivity Check", () => {
+describe("module1 - Case Sensitivity Check", () => {
   const username = Cypress.env("HACKATHON_USER");
   const validPassword = Cypress.env("HACKATHON_VALID_PASS");
   const invalidPassword = Cypress.env("HACKATHON_INVALID_PASS");

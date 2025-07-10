@@ -8,6 +8,14 @@ export default defineConfig({
     html: false,
     json: true,
     timestamp: "mmddyyyy_HHMMss",
+    // Enhanced reporting options
+    charts: true,
+    reportPageTitle: "Cypress Test Report",
+    reportTitle: "Test Results Dashboard",
+    embeddedScreenshots: true,
+    inlineAssets: true,
+    saveJson: true,
+    saveHtml: false, // We'll generate HTML later with merge
   },
 
   e2e: {
@@ -15,6 +23,14 @@ export default defineConfig({
     specPattern: "cypress/e2e/**/*.ts",
     setupNodeEvents(on, config) {
       // implement node event listeners here
+
+      // Optional: Add task for custom reporting
+      on("task", {
+        log(message) {
+          console.log(message);
+          return null;
+        },
+      });
     },
     viewportWidth: 1920,
     viewportHeight: 1080,
