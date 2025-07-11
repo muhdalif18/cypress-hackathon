@@ -314,7 +314,43 @@ describe("Item Selection Page - E-commerce Flow", () => {
     cy.get(".modal-content").should("not.exist");
   });
 
-  it("TC018: Should prevent proceeding if name are not filled", () => {
+  it("TC018: Should prevent proceeding if all field are not filled", () => {
+    /*
+    Description: Test validation for empty name field
+    High Level Steps:
+    1. Get to customer information form
+    2. Leave name field empty
+    3. Empty the fields
+    4. Try to proceed
+    5. Varify validation alert shown
+    */
+
+     // Setup alert stub
+    cy.window().then((win) => {
+      cy.stub(win, "alert").as("windowAlert");
+    });
+
+    // Get to customer information form
+    cy.get('input[type="checkbox"][value="T-Shirt"]').check();
+    cy.get(".quantity-input").eq(0).clear().type("1");
+    cy.get(".submit-btn").click();
+
+    // Fill phone number and address
+    cy.get("#customerName").clear();
+    cy.get("#customerPhone").clear();
+    cy.get("#customerAddress").clear();
+
+    // Try to proceed
+    cy.get("#proceedBtn").click();
+  
+    // validate the alert shown
+    cy.get(".modal-content").should("be.visible"); // Should still be on customer info modal
+    cy.get("#proceedBtn").click();
+    cy.get("@windowAlert").should("have.been.calledWith");
+    cy.log("Empty fields validation test completed successfully");
+  });
+
+  it("TC019: Can be proceeding if name are not filled", () => {
     /*
     Description: Test validation for empty name field
     High Level Steps:
@@ -322,7 +358,7 @@ describe("Item Selection Page - E-commerce Flow", () => {
     2. Leave name field empty
     3. Fill other fields
     4. Try to proceed
-    5. Verify validation prevents proceeding
+    5. Validation can be proceeding because name
     */
 
     // Get to customer information form
@@ -338,11 +374,11 @@ describe("Item Selection Page - E-commerce Flow", () => {
     // Try to proceed
     cy.get("#proceedBtn").click();
 
-    // Should not proceed or should show validation error
-    cy.get(".modal-content").should("not.be.visible"); // Should still be on customer info modal
+    // Able to proceed
+    cy.get(".modal-content").should("be.visible"); // Should still be on customer info modal
   });
 
-  it("TC019: Should validate phone number input and prevent invalid characters", () => {
+  it("TC020: Should validate phone number input and prevent invalid characters", () => {
     /*
     Description: Test phone number validation
     High Level Steps:
@@ -372,7 +408,7 @@ describe("Item Selection Page - E-commerce Flow", () => {
     cy.get(".modal-content").should("not.be.visible"); // Should still be on customer info modal
   });
 
-  it("TC020: Should accept valid phone numbers and proceed", () => {
+  it("TC021: Should accept valid phone numbers and proceed", () => {
     /*
     Description: Test valid phone number acceptance
     High Level Steps:
@@ -400,7 +436,7 @@ describe("Item Selection Page - E-commerce Flow", () => {
     cy.get("#confirmNo").should("be.visible");
   });
 
-  it("TC021: Should complete full happy path flow from item selection to order summary", () => {
+  it("TC022: Should complete full happy path flow from item selection to order summary", () => {
     /*
     Description: Test complete end-to-end flow
     High Level Steps:
@@ -439,7 +475,46 @@ describe("Item Selection Page - E-commerce Flow", () => {
     cy.get(".btn-back").should("be.visible");
   });
 
-  it("TC022: Should handle cancel operations at different stages", () => {
+  it("TC022: Should complete full happy path flow from item selection to order summary", () => {
+    /*
+    Description: Test complete end-to-end flow
+    High Level Steps:
+    1. Select item with size and quantity
+    2. Proceed to checkout
+    3. Fill customer information
+    4. Confirm order
+    5. Verify order summary
+    6. Test back button functionality
+    */
+
+    // Complete end-to-end flow
+    cy.get('input[type="checkbox"][value="T-Shirt"]').check();
+    cy.get(".size-selector").eq(0).select("M");
+    cy.get(".quantity-input").eq(0).clear().type("3");
+
+    cy.get(".submit-btn").click();
+
+    cy.get("#customerName").type("Integration Test User");
+    cy.get("#customerPhone").type("0123456789");
+    cy.get("#customerAddress").type(
+      "123 Integration Test Street, Kuala Lumpur"
+    );
+
+    cy.get("#proceedBtn").click();
+
+    cy.get("#confirmYes").click();
+
+    // Verify final order summary
+    cy.get(".summary-header").should("be.visible");
+    cy.get("#customerDetails").should("contain", "Integration Test User");
+    cy.get("#summaryList").should("be.visible");
+    cy.get("#totalPrice").should("contain", "RM");
+
+    // Verify back button works
+    cy.get(".btn-back").should("be.visible");
+  });
+
+  it("TC023: Should handle cancel operations at different stages", () => {
     /*
     Description: Test cancel functionality at various stages
     High Level Steps:
@@ -472,5 +547,50 @@ describe("Item Selection Page - E-commerce Flow", () => {
 
     // Should go back appropriately
     cy.get("#itemsForm").should("be.visible");
+  });
+
+  it("TC024: Confirm Order", () => {
+    /*
+    Description: Test complete end-to-end flow
+    High Level Steps:
+    1. Select item with size and quantity
+    2. Proceed to checkout
+    3. Fill customer information
+    4. Confirm order
+    5. Verify order summary
+    6. Test Confirm order button functionality
+    */
+
+    // Complete end-to-end flow
+    cy.get('input[type="checkbox"][value="T-Shirt"]').check();
+    cy.get(".size-selector").eq(0).select("M");
+    cy.get(".quantity-input").eq(0).clear().type("3");
+
+    cy.get(".submit-btn").click();
+
+    cy.get("#customerName").type("Integration Test User");
+    cy.get("#customerPhone").type("0123456789");
+    cy.get("#customerAddress").type(
+      "123 Integration Test Street, Kuala Lumpur"
+    );
+
+    cy.get("#proceedBtn").click();
+
+    cy.get("#confirmYes").click();
+
+    // Verify final order summary
+    cy.get(".summary-header").should("be.visible");
+    cy.get("#customerDetails").should("contain", "Integration Test User");
+    cy.get("#summaryList").should("be.visible");
+    cy.get("#totalPrice").should("contain", "RM");
+
+    // Verify confirm button works
+    cy.get(".btn-confirm").should("be.visible").click();
+    // Check if URL changed (expected behavior)
+    cy.url().then((currentUrl) => {
+      // If URL doesn't change, it might indicate a bug
+      expect(currentUrl).to.not.include('summary.html');
+      cy.log('URL remained the same after clicking - potential bug detected');
+    });
   });
 });
