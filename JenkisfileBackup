@@ -80,31 +80,6 @@ pipeline {
             }
         }
 
-        stage('Process Test Results') {
-            steps {
-                script {
-                    // Check if CSV files were generated and display info
-                    bat '''
-                        if exist allure-results\\test-results-detailed.csv (
-                            echo "Detailed test results CSV generated"
-                            echo "File size:"
-                            dir allure-results\\test-results-detailed.csv
-                        ) else (
-                            echo "No detailed CSV file found"
-                        )
-                        
-                        if exist allure-results\\test-summary.csv (
-                            echo "Test summary CSV generated"
-                            echo "Summary contents:"
-                            type allure-results\\test-summary.csv
-                        ) else (
-                            echo "No summary CSV file found"
-                        )
-                    '''
-                }
-            }
-        }
-
         stage('Generate Allure Report') {
             steps {
                 script {
@@ -131,7 +106,7 @@ pipeline {
                 script {
                     try {
                         allure([
-                            includeProperties: true,
+                            includeProperties: true,  // Changed to true to include environment properties
                             jdk: '',
                             reportBuildPolicy: 'ALWAYS',
                             results: [[path: 'allure-results']]
@@ -142,22 +117,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Publish Test Results') {
-            steps {
-                script {
-                    // Archive CSV files if they exist
-                    bat '''
-                        if exist allure-results\\test-results-detailed.csv (
-                            echo "Archiving detailed test results CSV"
-                        )
-                        if exist allure-results\\test-summary.csv (
-                            echo "Archiving test summary CSV"
-                        )
-                    '''
-                }
-            }
-        }
     }
 
     post {
@@ -165,25 +124,10 @@ pipeline {
             // Always archive artifacts regardless of test results
             script {
                 try {
-                    // Archive all reports and results
                     archiveArtifacts artifacts: 'allure-report/**', allowEmptyArchive: true
                     archiveArtifacts artifacts: 'allure-results/**', allowEmptyArchive: true
-                    
-                    // Archive CSV files specifically
-                    archiveArtifacts artifacts: 'allure-results/test-results-detailed.csv', allowEmptyArchive: true, fingerprint: true
-                    archiveArtifacts artifacts: 'allure-results/test-summary.csv', allowEmptyArchive: true, fingerprint: true
-                    
-                    // Archive screenshots and videos
                     archiveArtifacts artifacts: 'cypress/screenshots/**', allowEmptyArchive: true
                     archiveArtifacts artifacts: 'cypress/videos/**', allowEmptyArchive: true
-                    
-                    // Display information about archived files
-                    echo "Artifacts archived. Check the build artifacts for:"
-                    echo "- test-results-detailed.csv (includes error messages and stack traces)"
-                    echo "- test-summary.csv (build summary)"
-                    echo "- Allure reports with detailed failure information"
-                    echo "- Screenshots and videos of failures"
-                    
                 } catch (Exception e) {
                     echo "Failed to archive some artifacts: ${e.getMessage()}"
                 }
@@ -192,25 +136,10 @@ pipeline {
         
         failure {
             echo 'Pipeline failed - but reports should still be available'
-            script {
-                // Send notification with failure details if needed
-                if (fileExists('allure-results/test-results-detailed.csv')) {
-                    echo "Detailed failure information available in test-results-detailed.csv"
-                }
-            }
         }
         
         unstable {
             echo 'Tests failed but reports were generated successfully'
-            script {
-                // Count failures from CSV if available
-                bat '''
-                    if exist allure-results\\test-summary.csv (
-                        echo "Test Summary:"
-                        type allure-results\\test-summary.csv
-                    )
-                '''
-            }
         }
         
         success {

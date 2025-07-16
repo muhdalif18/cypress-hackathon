@@ -1,0 +1,26 @@
+{
+  "name": "cypress-hackathon",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "cypress run",
+    "test:headed": "cypress open",
+    "cy:verify": "cypress verify",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "test:allure": "cypress run && npm run allure:generate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@shelex/cypress-allure-plugin": "^2.41.2",
+    "@types/cypress": "^0.1.6",
+    "allure-commandline": "^2.34.1",
+    "cypress": "^14.5.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
