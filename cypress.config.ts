@@ -1,5 +1,7 @@
 import { defineConfig } from "cypress";
 import * as os from "os";
+import * as fs from "fs";
+import * as path from "path";
 
 export default defineConfig({
   e2e: {
@@ -27,14 +29,25 @@ export default defineConfig({
           "Build ID": process.env.BUILD_ID || "local",
         };
 
-        // Enhanced test results tracking
-        const testResults = [];
+        // Store all test results
+        let allTestResults: any[] = [];
 
-        // Track test results with detailed error information
+        // Task to save test results
+        on("task", {
+          saveTestResults(results) {
+            allTestResults = [...allTestResults, ...results];
+            console.log(
+              `Saved ${results.length} test results. Total: ${allTestResults.length}`
+            );
+            return null;
+          },
+        });
+
+        // Generate CSV after each spec
         on("after:spec", (spec, results) => {
           if (results && results.tests) {
-            results.tests.forEach((test) => {
-              const testResult = {
+            const specResults = results.tests.map((test) => {
+              const result = {
                 testId: test.title ? test.title.join(" - ") : "Unknown Test",
                 specFile: spec.name,
                 duration: test.duration || 0,
@@ -58,35 +71,57 @@ export default defineConfig({
                 errorMessage: "",
                 errorStack: "",
                 errorType: "",
+                failureReason: "",
+                actionItem: "",
+                action: "",
+                localRun: process.env.JENKINS_URL ? "NO" : "YES",
+                detectedBy: "Cypress Automation",
               };
 
-              // Add error details if test failed
-              if (test.state === "failed" && test.displayError) {
-                testResult.errorMessage =
-                  test.displayError.split("\n")[0] || "Unknown error";
-                testResult.errorStack = test.displayError || "";
-                testResult.errorType = test.displayError.includes(
-                  "AssertionError"
-                )
-                  ? "AssertionError"
-                  : test.displayError.includes("TimeoutError")
-                  ? "TimeoutError"
-                  : test.displayError.includes("NetworkError")
-                  ? "NetworkError"
-                  : "UnknownError";
+              // Capture ACTUAL error details from Cypress/Allure
+              if (test.state === "failed") {
+                // Get the actual error object
+                const error = test.err || test.error;
+
+                if (error) {
+                  // Capture the raw error message exactly as it appears
+                  result.errorMessage = error.message || "";
+                  result.errorStack = error.stack || "";
+                  result.errorType = error.name || "Error";
+
+                  // Use the actual error message as the reason
+                  result.failureReason = error.message || "Unknown error";
+
+                  // Extract actionable info from the actual error without predefined categories
+                  if (error.message) {
+                    result.actionItem = `Investigate: ${error.message}`;
+                    result.action = "Debug based on actual error details";
+                  }
+                }
+
+                // Also capture displayError if available (this is the formatted error from Cypress)
+                if (test.displayError) {
+                  result.errorMessage = test.displayError;
+                  result.failureReason =
+                    test.displayError.split("\n")[0] || "Unknown error";
+                  result.errorStack = test.displayError;
+                }
+              } else if (test.state === "passed") {
+                result.errorType = "PASSED";
+                result.failureReason = "Test executed successfully";
+                result.actionItem = "No action required";
+                result.action = "Continue monitoring";
               }
 
-              testResults.push(testResult);
+              return result;
             });
+
+            allTestResults = [...allTestResults, ...specResults];
           }
         });
 
         // Write comprehensive results after all tests complete
         on("after:run", (results) => {
-          const fs = require("fs");
-          const path = require("path");
-
-          // Ensure allure-results directory exists
           const allureResultsDir = path.join(process.cwd(), "allure-results");
           if (!fs.existsSync(allureResultsDir)) {
             fs.mkdirSync(allureResultsDir, { recursive: true });
@@ -102,25 +137,38 @@ export default defineConfig({
             .join("\n");
           fs.writeFileSync(envPropsPath, envProps);
 
-          // Create detailed CSV report with error information
-          if (testResults.length > 0) {
+          // Create CSV with ACTUAL error details from Cypress/Allure
+          if (allTestResults.length > 0) {
             const csvHeader = [
-              "TEST_ID",
-              "SPEC_FILE",
-              "DURATION_MS",
-              "STATUS",
-              "START_TIME",
-              "END_TIME",
-              "SUITE",
-              "TEST_CLASS",
-              "TEST_METHOD",
-              "ERROR_MESSAGE",
-              "ERROR_TYPE",
-              "ERROR_STACK",
+              "defectFactorDependentPassedInLocal",
+              "reason",
+              "actionItem",
+              "action",
+              "localRun",
+              "detectedBy",
+              "errorMessage",
+              "testId",
+              "specFile",
+              "duration",
+              "status",
+              "startTime",
+              "endTime",
+              "suite",
+              "testClass",
+              "testMethod",
+              "errorType",
+              "errorStack",
             ].join(",");
 
-            const csvRows = testResults.map((test) =>
+            const csvRows = allTestResults.map((test) =>
               [
+                test.status === "failed" ? "YES" : "NO",
+                `"${(test.failureReason || "").replace(/"/g, '""')}"`,
+                `"${(test.actionItem || "").replace(/"/g, '""')}"`,
+                `"${(test.action || "").replace(/"/g, '""')}"`,
+                `"${test.localRun}"`,
+                `"${test.detectedBy}"`,
+                `"${(test.errorMessage || "").replace(/"/g, '""')}"`,
                 `"${test.testId}"`,
                 `"${test.specFile}"`,
                 test.duration,
@@ -130,44 +178,114 @@ export default defineConfig({
                 `"${test.suite}"`,
                 `"${test.testClass}"`,
                 `"${test.testMethod}"`,
-                `"${test.errorMessage.replace(/"/g, '""')}"`,
                 `"${test.errorType}"`,
-                `"${test.errorStack
+                `"${(test.errorStack || "")
                   .replace(/"/g, '""')
                   .replace(/\n/g, "\\n")}"`,
               ].join(",")
             );
 
             const csvContent = [csvHeader, ...csvRows].join("\n");
-            const csvPath = path.join(
-              allureResultsDir,
-              "test-results-detailed.csv"
-            );
+            const csvPath = path.join(allureResultsDir, "data_suites.csv");
             fs.writeFileSync(csvPath, csvContent);
-            console.log("Detailed test results CSV written to:", csvPath);
+            console.log(
+              "CSV report with ACTUAL error details written to:",
+              csvPath
+            );
+            console.log(`Total tests processed: ${allTestResults.length}`);
           }
 
-          // Also create a summary CSV for Jenkins
-          const summaryPath = path.join(allureResultsDir, "test-summary.csv");
-          const summary = {
-            totalTests: results.totalTests || 0,
-            totalPassed: results.totalPassed || 0,
-            totalFailed: results.totalFailed || 0,
-            totalPending: results.totalPending || 0,
-            totalSkipped: results.totalSkipped || 0,
-            totalDuration: results.totalDuration || 0,
-            runDate: new Date().toISOString(),
-            buildNumber: process.env.BUILD_NUMBER || "local",
-            environment: process.env.NODE_ENV || "test",
-          };
+          // Also read from allure-results JSON files if they exist
+          try {
+            const allureFiles = fs
+              .readdirSync(allureResultsDir)
+              .filter((file) => file.endsWith("-result.json"));
 
-          const summaryContent = Object.entries(summary)
-            .map(([key, value]) => `${key},${value}`)
-            .join("\n");
-          fs.writeFileSync(summaryPath, summaryContent);
+            allureFiles.forEach((file) => {
+              const filePath = path.join(allureResultsDir, file);
+              const allureData = JSON.parse(fs.readFileSync(filePath, "utf8"));
 
-          console.log("Environment properties written to:", envPropsPath);
-          console.log("Test summary written to:", summaryPath);
+              if (allureData.status === "failed" && allureData.statusDetails) {
+                console.log(`Allure error details for ${allureData.name}:`);
+                console.log(`Message: ${allureData.statusDetails.message}`);
+                console.log(`Trace: ${allureData.statusDetails.trace}`);
+
+                // Update our CSV data with Allure details if available
+                const matchingTest = allTestResults.find(
+                  (test) =>
+                    test.testMethod === allureData.name ||
+                    test.testId.includes(allureData.name)
+                );
+
+                if (matchingTest && allureData.statusDetails) {
+                  matchingTest.errorMessage =
+                    allureData.statusDetails.message ||
+                    matchingTest.errorMessage;
+                  matchingTest.errorStack =
+                    allureData.statusDetails.trace || matchingTest.errorStack;
+                  matchingTest.failureReason =
+                    allureData.statusDetails.message ||
+                    matchingTest.failureReason;
+                }
+              }
+            });
+
+            // Re-write CSV with updated Allure data
+            if (allTestResults.length > 0) {
+              const csvHeader = [
+                "defectFactorDependentPassedInLocal",
+                "reason",
+                "actionItem",
+                "action",
+                "localRun",
+                "detectedBy",
+                "errorMessage",
+                "testId",
+                "specFile",
+                "duration",
+                "status",
+                "startTime",
+                "endTime",
+                "suite",
+                "testClass",
+                "testMethod",
+                "errorType",
+                "errorStack",
+              ].join(",");
+
+              const csvRows = allTestResults.map((test) =>
+                [
+                  test.status === "failed" ? "YES" : "NO",
+                  `"${(test.failureReason || "").replace(/"/g, '""')}"`,
+                  `"${(test.actionItem || "").replace(/"/g, '""')}"`,
+                  `"${(test.action || "").replace(/"/g, '""')}"`,
+                  `"${test.localRun}"`,
+                  `"${test.detectedBy}"`,
+                  `"${(test.errorMessage || "").replace(/"/g, '""')}"`,
+                  `"${test.testId}"`,
+                  `"${test.specFile}"`,
+                  test.duration,
+                  test.status,
+                  test.startTime,
+                  test.endTime,
+                  `"${test.suite}"`,
+                  `"${test.testClass}"`,
+                  `"${test.testMethod}"`,
+                  `"${test.errorType}"`,
+                  `"${(test.errorStack || "")
+                    .replace(/"/g, '""')
+                    .replace(/\n/g, "\\n")}"`,
+                ].join(",")
+              );
+
+              const csvContent = [csvHeader, ...csvRows].join("\n");
+              const csvPath = path.join(allureResultsDir, "data_suites.csv");
+              fs.writeFileSync(csvPath, csvContent);
+              console.log("CSV updated with Allure error details");
+            }
+          } catch (error) {
+            console.log("Could not read Allure JSON files:", error.message);
+          }
         });
 
         return {
@@ -188,11 +306,10 @@ export default defineConfig({
     specPattern: "cypress/e2e/**/*.cy.{js,ts}",
     supportFile: "cypress/support/e2e.ts",
 
-    // Allure-specific configurations
     env: {
       allure: true,
       allureReuseAfterSpec: true,
-      allureAddVideoOnPass: false, // Only add video on failure
+      allureAddVideoOnPass: false,
     },
   },
 });
